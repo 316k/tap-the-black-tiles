@@ -5,7 +5,8 @@ $(document).ready(function() {
     if(mode_name in modes) {
         mode = modes[mode_name];
         $('title').text($('title').text() + ' - ' + mode_name.ucfirst());
-        mode.init();
+        // Bugfix for Firefox OS
+        setTimeout(mode.init, 100);
     } else {
         // Select a mode
         var html = '<div class="select-mode"><h1>Select a mode</h1>';
@@ -34,11 +35,13 @@ var modes = {
             mode.body_height = $('body').height();
             mode.append();
             mode.row_height = $('div').height();
-            mode.speed = mode.row_height*1.1;
+            mode.speed = mode.row_height*2;
             mode.score = 0;
             mode.last_move = window.performance.now();
             mode.move();
             mode.scroll_top = 0;
+            mode.row_height = $('div').height();
+            mode.body_height = $('body').height();
         },
         append: function() {
             var tiles = [
@@ -68,9 +71,16 @@ var modes = {
             }).each(function() {
                 if($(this).position().top > mode.body_height) {
                     if($(this).children('.black').length) {
-                        mode.lost();
+                        $(this).children('.black').removeClass('black').addClass('red');
+                        mode.move = function() {};
+                        $('div').animate({
+                            top: (-2*mode.row_height) + 'px'
+                        }, 1000, function() {
+                            mode.lost();
+                        });
+                    } else {
+                        $(this).remove();
                     }
-                    $(this).remove();
                 }
             });
 
@@ -81,25 +91,25 @@ var modes = {
         },
         tap: function(context) {
             if($(context).hasClass('black')) {
-                $(context).removeClass('black');
+                $(context).removeClass('black').addClass('gray');
                 mode.score++;
                 $('#score').text(mode.score);
-            } else {
+            } else if(!$(context).hasClass('gray')) {
                 $(context).addClass('red');
+                mode.move = function() {};
                 mode.lost();
             }
             navigator.vibrate(50);
         },
         lost: function() {
-            mode.move = function() {};
             $('span').removeAttr('onclick');
             $('#final-score').text(mode.score);
             localStorage.setItem('score.' + mode_name, Math.max(parseInt(localStorage.getItem('score.' + mode_name)) || 0, mode.score));
             $('#high-score').text(localStorage.getItem('score.' + mode_name));
-            $('#restart, #game-over, #quit').fadeIn();
+            $('#restart, #game-over, #quit').fadeIn(2000);
         }
     },
-    classic: {
+    zen: {
         init: function() {
             $('#restart, #game-over, #quit').hide();
             mode.body_height = $('body').height();
@@ -107,9 +117,8 @@ var modes = {
             mode.append();
             mode.append();
             mode.append();
-            mode.append();
             mode.last_move = window.performance.now();
-            mode.row_height = $('div').height();
+            mode.row_height = $('div').first().height();
             mode.speed = mode.row_height;
             mode.score = 0;
         },
@@ -127,18 +136,38 @@ var modes = {
         },
         move: function() {
             mode.append();
+            $('div').css({
+                top: (-mode.row_height) + 'px'
+            }).animate({
+                top: '0px'
+            }, 100);
 
             $('div').each(function() {
                 if($(this).position().top >= mode.body_height) {
                     if($(this).children('.black').length) {
+                        $('div').animate({
+                            top: (-mode.row_height) + 'px'
+                        }, 1000, function() {
+                            mode.lost();
+                        });
                         mode.lost();
+                    } else {
+                        $(this).remove();
                     }
-                    $(this).remove();
                 }
             });
         },
         tap: function(context) {
-            modes.arcade.tap(context);
+            if($(context).hasClass('black')) {
+                $(context).removeClass('black').addClass('gray');
+                mode.score++;
+                $('#score').text(mode.score);
+            } else if(!$(context).hasClass('gray')) {
+                $(context).addClass('red');
+                mode.move = function() {};
+                mode.lost();
+            }
+            navigator.vibrate(50);
             mode.move();
         },
         lost: function() {
@@ -148,7 +177,7 @@ var modes = {
     faster: {
         init: function() {
             modes.arcade.init();
-            mode.speed = mode.row_height*2.2;
+            mode.speed = mode.row_height*3.3;
         },
         append: function() { modes.arcade.append(); },
         move: function() { modes.arcade.move(); },
@@ -237,13 +266,14 @@ var modes = {
         speedUp: function() { modes.arcade.speedUp(); },
         tap: function(context) {
             if($(context).hasClass('black')) {
-                $(context).removeClass('black');
+                $(context).removeClass('black').addClass('gray');
                 mode.score++;
                 $('#score').text(mode.score);
             } else if($(context).hasClass('twice')) {
                 $(context).removeClass('twice').addClass('black').text('');
-            } else {
+            } else if(!$(context).hasClass('gray')) {
                 $(context).addClass('red');
+                mode.move = function() {};
                 mode.lost();
             }
             navigator.vibrate(50);
