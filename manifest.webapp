@@ -1,0 +1,31 @@
+{
+    "version": "1.0",
+    "name": "Do Tap the Black Tiles",
+    "description": "A free clone of Don't Tap the White Tiles",
+    "launch_path": "/index.html",
+    "icons": {
+        "128": "icon-128.png"
+    },
+    "developer": {
+        "name": "316k",
+        "url": "http://wasting-ti.me/"
+    },
+    "locales": {
+        "en": {
+            "description": "A free clone of Don't Tap the White Tiles",
+            "developer": {
+                "name": "316k",
+                "url": "http://wasting-ti.me/"
+            }
+        },
+        "fr": {
+            "description": "Un clone libre du jeu Don't Tap the White Tiles",
+            "developer": {
+                "name": "316k",
+                "url": "http://wasting-ti.me/"
+            }
+        }
+    },
+    "default_locale": "en",
+    "orientation": "portrait"
+}
