@@ -12,7 +12,7 @@ $(document).ready(function() {
         var html = '<div class="select-mode"><h1>Select a mode</h1>';
         for(mode in modes) {
             var high_score = (parseInt(localStorage.getItem('score.' + mode)) || 0);
-            html += '<a href="index.html?' + mode + '">' + mode + ' <br><small>High score : ' + high_score + '</small></a>';
+            html += '<a href="index.html?' + mode + '">' + mode.replace('_', ' ') + ' <br><small>High score : ' + high_score + '</small></a>';
         }
         html += '</div>';
         $('body').empty().append(html);
@@ -183,6 +183,41 @@ var modes = {
         move: function() { modes.arcade.move(); },
         speedUp: function() {
             mode.speed += mode.row_height*0.15;
+        },
+        tap: function(context) { modes.arcade.tap(context); },
+        lost: function() { modes.arcade.lost(); }
+    },
+    flash: {
+        init: function() { modes.arcade.init(); mode.flash(); mode.invert = 0; },
+        append: function() { modes.arcade.append(); mode.flash(); },
+        move: function() { modes.arcade.move(); },
+        speedUp: function() { modes.arcade.speedUp(); },
+        tap: function(context) { modes.arcade.tap(context); },
+        lost: function() { modes.arcade.lost(); },
+        flash: function() {
+            if(mode.invert == 3) {
+                $('span').css({backgroundColor: 'black'});
+            } else {
+                $('span').css({backgroundColor: 'transparent'});
+            }
+            mode.invert++;
+            mode.invert %= 4;
+        }
+    },
+    endurance: {
+        init: function() { modes.arcade.init(); },
+        append: function() { modes.arcade.append(); },
+        move: function() { modes.arcade.move(); },
+        speedUp: function() {},
+        tap: function(context) { modes.arcade.tap(context); },
+        lost: function() { modes.arcade.lost(); }
+    },
+    random_speed: {
+        init: function() { modes.arcade.init(); },
+        append: function() { modes.arcade.append(); },
+        move: function() { modes.arcade.move(); },
+        speedUp: function() {
+            mode.speed = mode.row_height * (Math.random() * 7) + mode.row_height/2;
         },
         tap: function(context) { modes.arcade.tap(context); },
         lost: function() { modes.arcade.lost(); }
