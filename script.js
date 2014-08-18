@@ -233,12 +233,20 @@ var modes = {
         tap: function(context) { modes.arcade.tap(context); },
         lost: function() { modes.arcade.lost(); }
     },
+    faster_endurance: {
+        init: function() { modes.faster.init(); },
+        append: function() { modes.arcade.append(); },
+        move: function() { modes.arcade.move(); },
+        speedUp: function() {},
+        tap: function(context) { modes.arcade.tap(context); },
+        lost: function() { modes.arcade.lost(); }
+    },
     random_speed: {
         init: function() { modes.arcade.init(); },
         append: function() { modes.arcade.append(); },
         move: function() { modes.arcade.move(); },
         speedUp: function() {
-            mode.speed = mode.row_height * (Math.random() * 7) + mode.row_height/2;
+            mode.speed = mode.row_height * (Math.random() * 4) + mode.row_height/2;
         },
         tap: function(context) { modes.arcade.tap(context); },
         lost: function() { modes.arcade.lost(); }
@@ -381,16 +389,18 @@ var modes = {
         init: function() { modes.arcade.init(); },
         append: function() {
             modes.arcade.append();
+            var that = this;
             $('span').each(function() {
                 $(this).css({
-                    backgroundColor: "rgba(" + rand_int(0, 256) + ", " + rand_int(0, 256) + ", " + rand_int(0, 256) + ", 0.5)"
+                    backgroundColor: that.colors.choose(),
                 });
             });
         },
         move: function() { modes.arcade.move(); },
         speedUp: function() { modes.arcade.speedUp(); },
         tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
+        lost: function() { modes.arcade.lost(); },
+        colors: ['#00C', '#0CC', '#0C0', '#CC0', '#C0C', '#C00']
     }
 };
 
@@ -413,8 +423,12 @@ function time() {
     return window.performance.now() + time_delay;
 }
 
+Array.prototype.choose = function() {
+    return this[Math.floor(Math.random() * this.length)];
+};
+
 String.prototype.ucfirst = function() {
     var string = this.split('');
     string[0] = string[0].toUpperCase();
     return string.join('');
-}
+};
