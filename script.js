@@ -1,10 +1,23 @@
-var mode, mode_name;
+var mode, mode_name, last_focus = false, time_delay = 0;
 
 $(document).ready(function() {
     mode_name = window.location.search.substr(1);
     if(mode_name in modes) {
         mode = modes[mode_name];
         $('title').text($('title').text() + ' - ' + mode_name.ucfirst());
+
+        // Pause time on lost focus
+        window.onblur = function() {
+            last_focus = window.performance.now();
+        }
+
+        window.onfocus = function() {
+            if(last_focus) {
+                time_delay += window.performance.now() - last_focus;
+                last_focus = false;
+            }
+        }
+
         // Bugfix for Firefox OS
         setTimeout(mode.init, 100);
     } else {
@@ -37,7 +50,7 @@ var modes = {
             mode.row_height = $('div').height();
             mode.speed = mode.row_height*2;
             mode.score = 0;
-            mode.last_move = window.performance.now();
+            mode.last_move = time();
             mode.move();
             mode.scroll_top = 0;
             mode.row_height = $('div').height();
@@ -45,20 +58,26 @@ var modes = {
         },
         append: function() {
             var tiles = [
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>'
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                '<span class="black"></span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
             });
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
             mode.speedUp();
         },
         move: function() {
-            var delta_y = (window.performance.now() - mode.last_move)/1000 * mode.speed;
-            mode.last_move = window.performance.now();
+            if(!time()) {
+                setTimeout(mode.move, 3);
+                return;
+            }
+
+            var delta_y = (time() - mode.last_move)/1000 * mode.speed;
+            mode.last_move = time();
 
             mode.scroll_top = (mode.scroll_top + delta_y);
             if(mode.scroll_top >= mode.row_height) {
@@ -87,7 +106,7 @@ var modes = {
             setTimeout(mode.move, 30);
         },
         speedUp: function() {
-            mode.speed += mode.row_height*0.07;
+            mode.speed += mode.row_height*0.05;
         },
         tap: function(context) {
             if($(context).hasClass('black')) {
@@ -102,7 +121,7 @@ var modes = {
             navigator.vibrate(50);
         },
         lost: function() {
-            $('span').removeAttr('onclick');
+            $('span').unbind('touchstart');
             $('#final-score').text(mode.score);
             localStorage.setItem('score.' + mode_name, Math.max(parseInt(localStorage.getItem('score.' + mode_name)) || 0, mode.score));
             $('#high-score').text(localStorage.getItem('score.' + mode_name));
@@ -117,22 +136,23 @@ var modes = {
             mode.append();
             mode.append();
             mode.append();
-            mode.last_move = window.performance.now();
+            mode.last_move = time();
             mode.row_height = $('div').first().height();
             mode.speed = mode.row_height;
             mode.score = 0;
         },
         append: function() {
             var tiles = [
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>'
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                '<span class="black"></span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
             });
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
         move: function() {
             mode.append();
@@ -246,16 +266,17 @@ var modes = {
         init: function() { modes.arcade.init(); },
         append: function() {
             var tiles = [
-                '<span onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>'
+                '<span></span>',
+                '<span class="black"></span>',
+                '<span class="black"></span>',
+                '<span class="black"></span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
         move: function() { modes.arcade.move(); },
         speedUp: function() { modes.arcade.speedUp(); },
@@ -266,16 +287,17 @@ var modes = {
         init: function() { modes.arcade.init(); },
         append: function() {
             var tiles = [
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                Math.random() > 0.25 ? '<span class="black" onclick="tap(this)"></span>' : '<span class="trap" onclick="tap(this)"><br />/!\\</span>'
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="trap"><br />/!\\</span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
         move: function() { modes.arcade.move(); },
         speedUp: function() { modes.arcade.speedUp(); },
@@ -286,16 +308,17 @@ var modes = {
         init: function() { modes.arcade.init(); },
         append: function() {
             var tiles = [
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                '<span onclick="tap(this)"></span>',
-                Math.random() > 0.25 ? '<span class="black" onclick="tap(this)"></span>' : '<span class="twice" onclick="tap(this)"><br/>2x</span>'
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="twice"><br/>2x</span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
         move: function() { modes.arcade.move(); },
         speedUp: function() { modes.arcade.speedUp(); },
@@ -336,16 +359,17 @@ var modes = {
         init: function() { modes.arcade.init(); },
         append: function() {
             var tiles = [
-                '<span class="black" onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>',
-                '<span class="black" onclick="tap(this)"></span>'
+                '<span class="black"></span>',
+                '<span class="black"></span>',
+                '<span class="black"></span>',
+                '<span class="black"></span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
         move: function() { modes.arcade.move(); },
         speedUp: function() { modes.arcade.speedUp(); },
@@ -369,13 +393,23 @@ var modes = {
     }
 };
 
-// Shortcut for onclick attributes
 function tap(context) {
+    if(!time()) {
+        return;
+    }
     mode.tap(context);
 }
 
 function rand_int(min_rand, max_rand) {
     return parseInt(min_rand + (Math.random()*1000 % (max_rand - min_rand)));
+}
+
+function time() {
+    if(last_focus) {
+        return 0;
+    }
+
+    return window.performance.now() + time_delay;
 }
 
 String.prototype.ucfirst = function() {
