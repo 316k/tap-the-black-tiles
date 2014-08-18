@@ -1,5 +1,5 @@
 {
-    "version": "1.15",
+    "version": "1.30",
     "name": "Do Tap the Black Tiles",
     "description": "A free clone of Don't Tap the White Tiles (aka Piano Tiles)",
     "launch_path": "/index.html",
