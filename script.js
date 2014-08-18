@@ -125,7 +125,8 @@ var modes = {
             $('#final-score').text(mode.score);
             localStorage.setItem('score.' + mode_name, Math.max(parseInt(localStorage.getItem('score.' + mode_name)) || 0, mode.score));
             $('#high-score').text(localStorage.getItem('score.' + mode_name));
-            $('#restart, #game-over, #quit').fadeIn(2000);
+            $('#game-over').fadeIn(2000);
+            $('#restart, #quit').delay(800).fadeIn('1200');
         }
     },
     zen: {
