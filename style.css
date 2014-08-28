@@ -15,18 +15,22 @@
 
 .select-mode a {
     text-transform: capitalize;
-    color: white;
-    font-size: x-large;
-    margin-bottom: 0;
     text-decoration: none;
-    width: 100%;
+    font-size: x-large;
+    color: white;
+    background-color: black;
+    margin: 0;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    width: 50%;
+    height: 100px;
     display: block;
-    background-color: #111;
-    padding: 1%;
+    float: left;
 }
 
-.select-mode a:nth-child(2n) {
-    background-color: #222;
+.select-mode a:nth-child(4n), .select-mode a:nth-child(4n + 3) {
+    background-color: white;
+    color: black;
 }
 
 .select-mode a:hover {
@@ -34,7 +38,7 @@
 }
 
 .select-mode a small {
-    font-size: x-small;
+    font-size: medium;
 }
 
 html, body {
@@ -104,7 +108,7 @@ span.gray {
     padding: 10px;
     border: none;
     height: 100%;
-    font-size: xx-large;
+    font-size: x-large;
 }
 
 #score {
@@ -122,8 +126,7 @@ span.gray {
     left: 3%;
     color: black;
     text-decoration: none;
-    background-color: rgba(255,255,255,0.9);
-    border-radius: 10px;
+    background-color: #FFF;
     line-height: 3;
 }
 
