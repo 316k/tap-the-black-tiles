@@ -369,6 +369,205 @@ var modes = {
             });
         },
         colors: ['#00C', '#0CC', '#0C0', '#CC0', '#C0C', '#C00']
+    },
+    deterministic: {
+        parent: 'arcade',
+        append: function() {
+            var tiles = [];
+            for(var i = 0; i<4; i++) {
+                tiles.push(i == this.next() ? '<span class="black"></span>' : '<span></span>');
+            }
+            this.row++;
+            mode.speedUp();
+            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
+        },
+        row: 0,
+        next: function() { return Math.round(Math.abs(Math.sin(this.row * 13729 + 9))*13*13*13) % 4 }
+    },
+    odd_numbers: {
+        parent: 'arcade',
+        append: function() {
+            var number = rand_int(0, 100);
+            var tiles = [
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                '<span class="black' + (number % 2 ? ' good' : '') + '"><br />' + number + '</span>'
+            ].sort(function(){
+                // Random sort
+                return Math.random() > 0.5;
+            });
+            mode.speedUp();
+            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
+        },
+        check_death: function() {
+            $('div').css({
+                top: mode.scroll_top - mode.row_height + 'px'
+            }).each(function() {
+                if($(this).position().top > mode.body_height) {
+                    if($(this).children('.good').length) {
+                        $(this).children('.good').removeClass('good').addClass('red');
+                        mode.move = function() {};
+                        $('div').animate({
+                            top: (-2*mode.row_height) + 'px'
+                        }, 1000, function() {
+                            mode.lost();
+                        });
+                    } else {
+                        $(this).remove();
+                    }
+                }
+            });
+        },
+        tap: function(context) {
+            if($(context).hasClass('good')) {
+                $(context).removeClass('black').removeClass('good').addClass('gray').text('');
+                mode.score++;
+                $('#score').text(mode.score);
+            } else if(!$(context).hasClass('gray')) {
+                $(context).addClass('red');
+                mode.move = function() {};
+                mode.lost();
+            }
+            navigator.vibrate(50);
+        },
+    },
+    blocking_circle: {
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+            $('body').children().first().before('<p id="blocking-circle"></p>');
+        },
+    },
+    right_color: {
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+            $('body').children().first().before('<p id="color-indicator"></p><p id="time-indicator"></p>');
+            mode.last_color_modification = -3000;
+            mode.next_color = mode.colors.choose();
+            mode.change_color();
+            mode.speed = mode.row_height*3;
+        },
+        append: function() {
+            var tiles = [
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                '<span class="good" style="background-color: ' + mode.colors.choose() + '"></span>'
+            ].sort(function(){
+                // Random sort
+                return Math.random() > 0.5;
+            });
+            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
+            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            mode.speedUp();
+        },
+        check_death: function() {
+            $('div').css({
+                top: mode.scroll_top - mode.row_height + 'px'
+            }).each(function() {
+                if($(this).position().top > mode.body_height) {
+                    if($(this).children('.good[style="background-color: ' + mode.color + '"]').length
+                       && $(this).position().top > mode.body_height - mode.row_height) {
+                        $(this).children('.good').removeClass('good').addClass('red');
+                        mode.move = function() {};
+                        $('div').animate({
+                            top: (-2*mode.row_height) + 'px'
+                        }, 1000, function() {
+                            mode.lost();
+                        });
+                    } else {
+                        $(this).remove();
+                    }
+                }
+            });
+        },
+        tap: function(context) {
+            if($(context).hasClass('good') && $(context).css('backgroundColor') == mode.color) {
+                $(context).removeClass('good').addClass('gray');
+                mode.score++;
+                $('#score').text(mode.score);
+            } else if(!$(context).hasClass('gray')) {
+                $(context).addClass('red');
+                mode.move = function() {};
+                mode.lost();
+            }
+            navigator.vibrate(50);
+        },
+        speedUp: function() {},
+        lost: function() {
+            modes.arcade.lost();
+            mode.change_color = function() {};
+        },
+        change_color: function() {
+            var ts = time();
+            if(mode.last_color_modification + 3000 < ts) {
+                $('.good[style="background-color: ' + mode.next_color + '"]').each(function() {
+                    // Tolerence for tiles that are almost outside of the screen
+                    if($(this).parent().position().top > mode.body_height - 1.2 * mode.row_height) {
+                        $(this).removeClass('good').addClass('gray');
+                    }
+                });
+                mode.color = mode.next_color;
+                mode.next_color = mode.colors.choose();
+                $('#time-indicator').css('backgroundColor', mode.next_color);
+                $('#color-indicator').css({backgroundColor: mode.color});
+                mode.last_color_modification = ts;
+            } else {
+                var percent = Math.abs(Math.round((mode.last_color_modification - ts)/3000*100));
+                $('#time-indicator').width(percent + '%');
+            }
+            setTimeout(mode.change_color, 30);
+        },
+        colors: ['rgb(255, 0, 255)', 'rgb(0, 0, 255)', 'rgb(0, 200, 0)', 'rgb(255, 255, 0)', 'rgb(0, 0, 0)'],
+        color: '', // current color
+        next_color: '',
+        last_color_modification: 0,
+    },
+    mirror: {
+        parent: 'arcade',
+        append: function() {
+            modes.arcade.append();
+            $('div').first().children().each(function(index) {
+                if($(this).parent().children('.black:nth-child(' + (4 - index) + ')').length) {
+                    $(this).addClass('good');
+                }
+            });
+        },
+        check_death: function() {
+            $('div').css({
+                top: mode.scroll_top - mode.row_height + 'px'
+            }).each(function() {
+                if($(this).position().top > mode.body_height) {
+                    if($(this).children('.good').length) {
+                        $(this).children('.good').removeClass('good').addClass('red');
+                        mode.move = function() {};
+                        $('div').animate({
+                            top: (-2*mode.row_height) + 'px'
+                        }, 1000, function() {
+                            mode.lost();
+                        });
+                    } else if($(this).position().top > mode.body_height) {
+                        $(this).remove();
+                    }
+                }
+            });
+        },
+        tap: function(context) {
+            if($(context).hasClass('good')) {
+                $(context).removeClass('good').addClass('gray');
+                mode.score++;
+                $('#score').text(mode.score);
+            } else if(!$(context).hasClass('gray')) {
+                $(context).addClass('red');
+                mode.move = function() {};
+                mode.lost();
+            }
+            navigator.vibrate(50);
+        },
     }
 };
 
