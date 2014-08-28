@@ -18,6 +18,8 @@ $(document).ready(function() {
             }
         }
 
+        mode_inheritance(mode);
+
         // Bugfix for Firefox OS
         setTimeout(mode.init, 100);
     } else {
@@ -85,6 +87,11 @@ var modes = {
                 mode.scroll_top=0;
             }
 
+            mode.check_death();
+
+            setTimeout(mode.move, 30);
+        },
+        check_death: function() {
             $('div').css({
                 top: mode.scroll_top - mode.row_height + 'px'
             }).each(function() {
@@ -102,8 +109,6 @@ var modes = {
                     }
                 }
             });
-
-            setTimeout(mode.move, 30);
         },
         speedUp: function() {
             mode.speed += mode.row_height*0.05;
@@ -167,10 +172,11 @@ var modes = {
                 if($(this).position().top >= mode.body_height) {
                     if($(this).children('.black').length) {
                         $('div').animate({
-                            top: (-mode.row_height) + 'px'
+                            top: (-mode.row_height*2) + 'px'
                         }, 1000, function() {
                             mode.lost();
                         });
+                        $(this).children('.black').removeClass('black').addClass('red');
                         mode.lost();
                     } else {
                         $(this).remove();
@@ -196,25 +202,26 @@ var modes = {
         }
     },
     faster: {
+        parent: 'arcade',
         init: function() {
             modes.arcade.init();
             mode.speed = mode.row_height*3.3;
         },
-        append: function() { modes.arcade.append(); },
-        move: function() { modes.arcade.move(); },
         speedUp: function() {
             mode.speed += mode.row_height*0.15;
         },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     flash: {
-        init: function() { modes.arcade.init(); mode.flash(); mode.invert = 0; },
-        append: function() { modes.arcade.append(); mode.flash(); },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); },
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+            mode.flash();
+            mode.invert = 0;
+        },
+        append: function() {
+            modes.arcade.append();
+            mode.flash();
+        },
         flash: function() {
             if(mode.invert == 3) {
                 $('span').css({backgroundColor: 'black'});
@@ -226,36 +233,24 @@ var modes = {
         }
     },
     endurance: {
-        init: function() { modes.arcade.init(); },
-        append: function() { modes.arcade.append(); },
-        move: function() { modes.arcade.move(); },
+        parent: 'arcade',
         speedUp: function() {},
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     faster_endurance: {
-        init: function() { modes.faster.init(); },
-        append: function() { modes.arcade.append(); },
-        move: function() { modes.arcade.move(); },
+        parent: 'faster',
         speedUp: function() {},
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     random_speed: {
-        init: function() { modes.arcade.init(); },
-        append: function() { modes.arcade.append(); },
-        move: function() { modes.arcade.move(); },
+        parent: 'arcade',
         speedUp: function() {
-            mode.speed = mode.row_height * (Math.random() * 4) + mode.row_height/2;
+            mode.speed = mode.row_height * (Math.random() * 5) + mode.row_height/2;
         },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     /*sprint: {
         // TODO : You've got 15 seconds to tap all the black tiles you can
     },*/
     double: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             modes.arcade.append();
             var double = false;
@@ -266,13 +261,9 @@ var modes = {
                 }
             });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     triple: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             var tiles = [
                 '<span></span>',
@@ -287,13 +278,9 @@ var modes = {
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
             $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     trap: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             var tiles = [
                 '<span></span>',
@@ -308,19 +295,15 @@ var modes = {
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
             $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     twice: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             var tiles = [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
-                Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="twice"><br/>2x</span>'
+                Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="twice black"><br/>2x</span>'
             ].sort(function(){
                 // Random sort
                 return Math.random() > 0.5;
@@ -329,15 +312,13 @@ var modes = {
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
             $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
         tap: function(context) {
-            if($(context).hasClass('black')) {
+            if($(context).hasClass('black') && !$(context).hasClass('twice')) {
                 $(context).removeClass('black').addClass('gray');
                 mode.score++;
                 $('#score').text(mode.score);
             } else if($(context).hasClass('twice')) {
-                $(context).removeClass('twice').addClass('black').text('');
+                $(context).removeClass('twice').text('');
             } else if(!$(context).hasClass('gray')) {
                 $(context).addClass('red');
                 mode.move = function() {};
@@ -345,27 +326,22 @@ var modes = {
             }
             navigator.vibrate(50);
         },
-        lost: function() { modes.arcade.lost(); }
     },
     bastard: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             modes.arcade.append();
             var bastard = false;
-            $('div:nth-child(2) span, div:nth-child(3) span').each(function() {
+            $('div:nth-child(1) span, div:nth-child(2) span').each(function() {
                 if(!bastard && Math.random() < 0.15) {
                     $(this).addClass('black');
                     bastard = true;
                 }
             });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     hardcore: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             var tiles = [
                 '<span class="black"></span>',
@@ -380,13 +356,9 @@ var modes = {
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
             $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); }
     },
     disco: {
-        init: function() { modes.arcade.init(); },
+        parent: 'arcade',
         append: function() {
             modes.arcade.append();
             var that = this;
@@ -396,10 +368,6 @@ var modes = {
                 });
             });
         },
-        move: function() { modes.arcade.move(); },
-        speedUp: function() { modes.arcade.speedUp(); },
-        tap: function(context) { modes.arcade.tap(context); },
-        lost: function() { modes.arcade.lost(); },
         colors: ['#00C', '#0CC', '#0C0', '#CC0', '#C0C', '#C00']
     }
 };
@@ -409,6 +377,25 @@ function tap(context) {
         return;
     }
     mode.tap(context);
+}
+
+/**
+ * Copies the parent's methods for a given `mode`. The
+ * methods overloaded by `mode` are ignored.
+ */
+function mode_inheritance(mode) {
+    // Mode inheritance
+    if('parent' in mode) {
+        var parent = mode.parent;
+        if('parent' in modes[parent]) {
+            mode_inheritance(modes[parent]);
+        }
+        for(var action in modes[parent]) {
+            if(!(action in mode)) {
+                mode[action] = modes[parent][action];
+            }
+        }
+    }
 }
 
 function rand_int(min_rand, max_rand) {
