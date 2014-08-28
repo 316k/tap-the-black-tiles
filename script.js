@@ -29,6 +29,7 @@ $(document).ready(function() {
             var high_score = (parseInt(localStorage.getItem('score.' + mode)) || 0);
             html += '<a href="index.html?' + mode + '">' + mode.replace('_', ' ') + ' <br><small>High score : ' + high_score + '</small></a>';
         }
+        html += '<a href="about.html"><br />About this game...</a>';
         html += '</div>';
         $('body').empty().append(html);
     }
@@ -434,12 +435,19 @@ var modes = {
             navigator.vibrate(50);
         },
     },
-    blocking_circle: {
+    annoying_circle: {
         parent: 'arcade',
         init: function() {
             modes.arcade.init();
             $('body').children().first().before('<p id="blocking-circle"></p>');
+            mode.move_circle();
         },
+        move_circle: function() {
+            $('#blocking-circle').animate({
+                top: rand_int(0, 0.8 * mode.body_height) + 'px',
+                left: rand_int(0, $('body').width()/2) + 'px',
+            }, 1200, mode.move_circle);
+        }
     },
     right_color: {
         parent: 'arcade',
