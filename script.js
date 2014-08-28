@@ -532,7 +532,7 @@ var modes = {
         append: function() {
             modes.arcade.append();
             $('div').first().children().each(function(index) {
-                if($(this).parent().children('.black:nth-child(' + (4 - index) + ')').length) {
+                if($($(this).parent().children().get(3 - index)).hasClass('black')) {
                     $(this).addClass('good');
                 }
             });
