@@ -133,6 +133,19 @@ var modes = {
             $('#high-score').text(localStorage.getItem('score.' + mode_name));
             $('#game-over').fadeIn(2000);
             $('#restart, #quit').delay(800).fadeIn('1200');
+        },
+        freeze: function(timeout) {
+            var speed = mode.speed;
+            var tap = mode.tap;
+            var speedUp = mode.speedUp;
+            mode.speed = 0;
+            mode.tap = function() {};
+            mode.speedUp = function() {};
+            setTimeout(function() {
+                mode.speed = speed;
+                mode.tap = tap;
+                mode.speedUp = speedUp;
+            }, timeout);
         }
     },
     zen: {
@@ -384,7 +397,17 @@ var modes = {
             $('body div').first().children().bind('touchstart', function() { tap(this) });
         },
         row: 0,
-        next: function() { return Math.round(Math.abs(Math.sin(this.row * 13729 + 9))*13*13*13) % 4 }
+        next: function() { return Math.round(Math.abs(Math.sin(mode.row * 13729 + 9))*13*13*13) % 4 }
+    },
+    loop: {
+        parent: 'deterministic',
+        init: function() {
+            mode.loop = [0, 1, 2, 3, 0, 1, 2, 3].sort(function() {
+                return Math.random() > 0.5;
+            });
+            modes.deterministic.init();
+        },
+        next: function() { return mode.loop[mode.row % mode.loop.length] }
     },
     odd_numbers: {
         parent: 'arcade',
@@ -447,6 +470,140 @@ var modes = {
                 top: rand_int(0, 0.8 * mode.body_height) + 'px',
                 left: rand_int(0, $('body').width()/2) + 'px',
             }, 1200, mode.move_circle);
+        }
+    },
+    flip: {
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+            $('body, #score').css({
+                transition: 'transform 0.1s ease-in-out 0s'
+            });
+            setTimeout(function() {
+                mode.transform();
+            }, rand_int(4000, 16000));
+        },
+        transform_state: -1,
+        transform: function() {
+            mode.freeze(600);
+            $('body, #score').css({
+                transform: 'scale(' + mode.transform_state + ', 1)'
+            });
+            mode.transform_state = -mode.transform_state;
+            setTimeout(function() {
+                mode.transform()
+            }, rand_int(4000, 16000));
+        },
+        lost: function() {
+            modes.arcade.lost();
+            mode.transform = function() {};
+            $('body, #score').css({
+                transform: 'scale(1, 1)',
+                transitionDuration: '1s',
+            });
+        }
+    },
+    rotate: {
+        parent: 'flip',
+        transform_state: 180,
+        transform: function() {
+            mode.freeze(600);
+            $('body, #score').css({
+                transform: 'rotate(' + mode.transform_state + 'deg)',
+            });
+            mode.transform_state += 180;
+            setTimeout(function() {
+                mode.transform();
+            }, rand_int(4000, 16000));
+        },
+        lost: function() {
+            modes.arcade.lost();
+            mode.transform = function() {};
+            $('body, #score').css({
+                transform: 'rotate(0deg)',
+                transitionDuration: '1s',
+            });
+        }
+    },
+    zig_zag: {
+        parent: 'flip',
+        init: function() {
+            modes.arcade.init();
+            $('body, #score').css({
+                transition: 'transform 1s ease-in-out 0s'
+            });
+            mode.transform_state = parseInt($('body').width()/7);
+            mode.transform();
+        },
+        transform: function() {
+            $('body, #score').css({
+                transform: 'translate(' + mode.transform_state + 'px)',
+            });
+            mode.transform_state = -mode.transform_state;
+            setTimeout(function() {
+                mode.transform();
+            }, 1000);
+        },
+    },
+    freeze: {
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+
+            setTimeout(function() {
+                mode.stop();
+            }, rand_int(4000, 9000));
+        },
+        stop: function() {
+            var timeout = rand_int(500, 2300);
+            mode.freeze(timeout);
+            $('body').fadeTo('fast', 0.5);
+
+            setTimeout(function() {
+                $('body').fadeTo('fast', 1);
+            }, timeout);
+
+            setTimeout(function() {
+                mode.stop();
+            }, rand_int(4000, 9000));
+        },
+        lost: function() {
+            modes.arcade.lost();
+            mode.stop = function() {};
+            $('body').fadeTo('fast', 1);
+        }
+    },
+    scramble: {
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+
+            setTimeout(function() {
+                mode.scramble();
+            }, rand_int(4000, 9000));
+        },
+        scramble: function() {
+            $('div').each(function() {
+                var tile = $(this).children('.black');
+                tile.remove();
+                var reference_tile = $(this).children(':eq(' + rand_int(0, $(this).children().length) + ')');
+                if(Math.random() < 0.5) {
+                    reference_tile.before(tile);
+                } else {
+                    reference_tile.after(tile);
+                }
+                // Rebind event
+                tile.bind('touchstart', function() { tap(this) });
+            });
+
+            setTimeout(function() {
+                mode.scramble();
+            }, rand_int(4000, 9000));
+        },
+        lost: function() {
+            modes.arcade.lost();
+            mode.scramble = function() {};
+            $('body').fadeTo('fast', 1);
         }
     },
     right_color: {
