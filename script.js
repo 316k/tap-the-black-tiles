@@ -155,7 +155,6 @@ var modes = {
             mode.append();
             mode.append();
             mode.append();
-            mode.append();
             mode.last_move = time();
             mode.row_height = $('div').first().height();
             mode.speed = mode.row_height;
@@ -199,17 +198,17 @@ var modes = {
             });
         },
         tap: function(context) {
-            if($(context).hasClass('black')) {
+            if($(context).hasClass('black') && !$(context).parent().next('div').find('.black').length) {
                 $(context).removeClass('black').addClass('gray');
                 mode.score++;
                 $('#score').text(mode.score);
+                mode.move();
             } else if(!$(context).hasClass('gray')) {
                 $(context).addClass('red');
                 mode.move = function() {};
                 mode.lost();
             }
             navigator.vibrate(50);
-            mode.move();
         },
         lost: function() {
             modes.arcade.lost();
@@ -259,6 +258,22 @@ var modes = {
         speedUp: function() {
             mode.speed = mode.row_height * (Math.random() * 5) + mode.row_height/2;
         },
+    },
+    backwards: {
+        parent: 'arcade',
+        init: function() {
+            modes.arcade.init();
+            $('body, #score').css({
+                transform: 'rotate(180deg)'
+            });
+        },
+        lost: function() {
+            modes.arcade.lost();
+            $('body, #score').css({
+                transition: 'transform 1s ease-in-out 0s',
+                transform: 'rotate(0deg)'
+            });
+        }
     },
     /*sprint: {
         // TODO : You've got 15 seconds to tap all the black tiles you can
@@ -583,8 +598,10 @@ var modes = {
             }, rand_int(4000, 9000));
         },
         scramble: function() {
+            mode.freeze(200);
+
             $('div').each(function() {
-                var tile = $(this).children('.black');
+                var tile = $(this).children('.black, .gray');
                 tile.remove();
                 var reference_tile = $(this).children(':eq(' + rand_int(0, $(this).children().length) + ')');
                 if(Math.random() < 0.5) {
