@@ -48,6 +48,15 @@ html, body {
     font-family: "sans-serif";
 }
 
+body, html {
+    max-width: 600px;
+    margin: auto;
+}
+
+body.menu {
+    background-color: black;
+}
+
 div {
     width: 100%;
     height: 25%;
@@ -98,6 +107,8 @@ span.gray {
     text-align: center;
     position: absolute;
     width: 100%;
+    left: 0;
+    top: 10px;
 }
 
 #game-over {
@@ -105,7 +116,7 @@ span.gray {
     color: white;
     margin-top: 0;
     top: 0;
-    padding: 10px;
+    padding: 0;
     border: none;
     height: 100%;
     font-size: x-large;

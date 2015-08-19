@@ -1,6 +1,14 @@
 var mode, mode_name, last_focus = false, time_delay = 0;
+var touch_event = 'click';
 
 $(document).ready(function() {
+
+    if(navigator.userAgent.indexOf('Mobile') !== -1) {
+        touch_event = 'touchstart';
+    } else {
+        FastClick.attach(document.body);
+    }
+
     mode_name = window.location.search.substr(1);
     if(mode_name in modes) {
         mode = modes[mode_name];
@@ -24,14 +32,14 @@ $(document).ready(function() {
         setTimeout(mode.init, 100);
     } else {
         // Select a mode
-        var html = '<div class="select-mode"><h1>Select a mode</h1>';
+        var html = '<div class="select-mode"><h1>Tap the Black Tiles<br /><small>Select a mode...</small></h1>';
         for(mode in modes) {
             var high_score = (parseInt(localStorage.getItem('score.' + mode)) || 0);
             html += '<a href="index.html?' + mode + '">' + mode.replace('_', ' ') + ' <br><small>High score : ' + high_score + '</small></a>';
         }
         html += '<a href="about.html"><br />About this game...</a>';
         html += '</div>';
-        $('body').empty().append(html);
+        $('body').addClass('menu').empty().append(html);
     }
 });
 
@@ -70,7 +78,7 @@ var modes = {
                 return Math.random() > 0.5;
             });
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
             mode.speedUp();
         },
         move: function() {
@@ -127,7 +135,7 @@ var modes = {
             navigator.vibrate(50);
         },
         lost: function() {
-            $('span').unbind('touchstart');
+            $('span').unbind(touch_event);
             $('#final-score').text(mode.score);
             localStorage.setItem('score.' + mode_name, Math.max(parseInt(localStorage.getItem('score.' + mode_name)) || 0, mode.score));
             $('#high-score').text(localStorage.getItem('score.' + mode_name));
@@ -171,7 +179,7 @@ var modes = {
                 return Math.random() > 0.5;
             });
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
         move: function() {
             mode.append();
@@ -258,7 +266,7 @@ var modes = {
         speedUp: function() {
             mode.speed = mode.row_height * (Math.random() * 5) + mode.row_height/2;
         },
-    },
+    },/* FIXME : This hack doesn't work on webkit...
     backwards: {
         parent: 'arcade',
         init: function() {
@@ -274,7 +282,7 @@ var modes = {
                 transform: 'rotate(0deg)'
             });
         }
-    },
+    },*/
     /*sprint: {
         // TODO : You've got 15 seconds to tap all the black tiles you can
     },*/
@@ -305,7 +313,7 @@ var modes = {
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
     },
     trap: {
@@ -322,7 +330,7 @@ var modes = {
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
     },
     twice: {
@@ -339,7 +347,7 @@ var modes = {
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
         tap: function(context) {
             if($(context).hasClass('black') && !$(context).hasClass('twice')) {
@@ -383,7 +391,7 @@ var modes = {
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
     },
     disco: {
@@ -409,7 +417,7 @@ var modes = {
             this.row++;
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
         row: 0,
         next: function() { return Math.round(Math.abs(Math.sin(mode.row * 13729 + 9))*13*13*13) % 4 }
@@ -439,7 +447,7 @@ var modes = {
             });
             mode.speedUp();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
         check_death: function() {
             $('div').css({
@@ -517,7 +525,7 @@ var modes = {
                 transitionDuration: '1s',
             });
         }
-    },
+    },/* FIXME : Doesn't work on webkit browsers
     rotate: {
         parent: 'flip',
         transform_state: 180,
@@ -539,7 +547,7 @@ var modes = {
                 transitionDuration: '1s',
             });
         }
-    },
+    },*/
     zig_zag: {
         parent: 'flip',
         init: function() {
@@ -610,7 +618,7 @@ var modes = {
                     reference_tile.after(tile);
                 }
                 // Rebind event
-                tile.bind('touchstart', function() { tap(this) });
+                tile.bind(touch_event, function() { tap(this) });
             });
 
             setTimeout(function() {
@@ -644,7 +652,7 @@ var modes = {
                 return Math.random() > 0.5;
             });
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind('touchstart', function() { tap(this) });
+            $('body div').first().children().bind(touch_event, function() { tap(this) });
             mode.speedUp();
         },
         check_death: function() {
