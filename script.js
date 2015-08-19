@@ -34,6 +34,8 @@ $(document).ready(function() {
         // Select a mode
         var html = '<div class="select-mode"><h1>Tap the Black Tiles<br /><small>Select a mode...</small></h1>';
         for(mode in modes) {
+            if(mode === 'reload') continue; // XXX : hack for Android apk
+
             var high_score = (parseInt(localStorage.getItem('score.' + mode)) || 0);
             html += '<a href="index.html?' + mode + '">' + mode.replace('_', ' ') + ' <br><small>High score : ' + high_score + '</small></a>';
         }
@@ -53,6 +55,11 @@ $(document).ready(function() {
  * The modes are fetched from here in the "Select a mode" section.
  */
 var modes = {
+    reload: { // XXX : Ugly hack for the Android apk
+        init: function() {
+            window.location = 'index.html';
+        }
+    },
     arcade: {
         init: function() {
             $('#restart, #game-over, #quit').hide();
