@@ -1,6 +1,5 @@
 var mode, mode_name, last_focus = false, time_delay = 0;
 var touch_event = 'click';
-
 $(document).ready(function() {
 
     if(navigator.userAgent.indexOf('Mobile') !== -1) {
@@ -11,6 +10,17 @@ $(document).ready(function() {
 
     mode_name = window.location.search.substr(1);
     if(mode_name in modes) {
+
+        if(window.droid) {
+            // XXX : Beware : here lies the most terrible Android WebView bugfix in the history of the world
+            var height = Math.round($(window).width() * window.droid.getSize());
+            // This feels dirty
+            $('html, body, #game-over').height(height);
+            // Even joking about it in the comments doesn't makes me feel better about myself
+            $('#restart, #quit').css('top', 0.8 * height);
+            // brb, I'm gonna be sick
+        }
+
         mode = modes[mode_name];
         $('title').text($('title').text() + ' - ' + mode_name.ucfirst());
 
@@ -27,21 +37,19 @@ $(document).ready(function() {
         }
 
         mode_inheritance(mode);
-
         // Bugfix for Firefox OS
         setTimeout(mode.init, 100);
     } else {
         // Select a mode
         var html = '<div class="select-mode"><h1>Tap the Black Tiles<br /><small>Select a mode...</small></h1>';
         for(mode in modes) {
-            if(mode === 'reload') continue; // XXX : hack for Android apk
-
             var high_score = (parseInt(localStorage.getItem('score.' + mode)) || 0);
             html += '<a href="index.html?' + mode + '">' + mode.replace('_', ' ') + ' <br><small>High score : ' + high_score + '</small></a>';
         }
         html += '<a href="about.html"><br />About this game...</a>';
         html += '</div>';
-        $('body').addClass('menu').empty().append(html);
+        $('html').addClass('menu')
+        $('body').addClass('menu').html(html);
     }
 });
 
@@ -55,11 +63,6 @@ $(document).ready(function() {
  * The modes are fetched from here in the "Select a mode" section.
  */
 var modes = {
-    reload: { // XXX : Ugly hack for the Android apk
-        init: function() {
-            window.location = 'index.html';
-        }
-    },
     arcade: {
         init: function() {
             $('#restart, #game-over, #quit').hide();

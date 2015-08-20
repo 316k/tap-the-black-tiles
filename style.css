@@ -8,9 +8,7 @@
     text-align: center;
     color: white;
     background-color: black;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: scroll;
+    height: auto;
 }
 
 .select-mode a {
@@ -44,21 +42,25 @@
 html, body {
     margin: 0;
     height: 100%;
-    overflow: hidden;
     font-family: "sans-serif";
-}
-
-body, html {
     max-width: 600px;
     margin: auto;
 }
 
+body {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+}
+
 body.menu {
     background-color: black;
+    overflow: auto;
+    position: static;
 }
 
 div {
-    width: 100%;
+    width: 99.75%;
     height: 25%;
     position: relative;
     float: left;
