@@ -1,4 +1,4 @@
-Do Tap the Black Tiles
+Tap the Black Tiles
 ======================
 
 A free clone of Don't Tap the White Tiles (aka Piano Tiles).
@@ -10,7 +10,7 @@ the white tiles ;)
 
 ## Contributing
 
-All contributions are welcomed :) Just fork this project and make a pull
+All contributions are welcome :) Just fork this project and make a pull
 request.
 
 Note that you can easily add custom modes by adding/overloading functions in the
@@ -20,4 +20,5 @@ developer, feel free to contact me at 316k *ät* legtux *döt* org.
 
 ## License
 
-This code is licensed under the MIT license. Copyright is stupid.
+This code is licensed under the MIT license, because it's free, *libre*
+and short enough to be actually read by people.
