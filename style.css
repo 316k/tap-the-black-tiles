@@ -127,7 +127,7 @@ span.gray {
 #score {
     font-size: 900%;
     color: #333;
-    z-index: -1;
+    pointer-events: none;
     margin-top: 0;
 }
 
