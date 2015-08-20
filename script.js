@@ -255,7 +255,7 @@ var modes = {
         },
         flash: function() {
             if(mode.invert == 3) {
-                $('span').css({backgroundColor: 'black'});
+                $('span').css({backgroundColor: '#070707'});
             } else {
                 $('span').css({backgroundColor: 'transparent'});
             }
