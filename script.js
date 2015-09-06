@@ -1,6 +1,9 @@
-var mode, mode_name, last_focus = false, time_delay = 0;
+var mode, mode_name, mode_parent, last_focus = false, time_delay = 0;
 var touch_event = 'click';
+
 $(document).ready(function() {
+
+    $('#restart, #game-over, #quit, #new-high-score').hide();
 
     if(navigator.userAgent.indexOf('Mobile') !== -1) {
         touch_event = 'touchstart';
@@ -9,6 +12,12 @@ $(document).ready(function() {
     }
 
     mode_name = window.location.search.substr(1);
+
+    if(mode_name.indexOf('/') !== -1) {
+        mode_parent = mode_name.split('/')[1];
+        mode_name = mode_name.split('/')[0];
+    }
+
     if(mode_name in modes) {
 
         if(window.droid) {
@@ -22,6 +31,11 @@ $(document).ready(function() {
         }
 
         mode = modes[mode_name];
+
+        if(mode_parent && 'parents' in mode && mode.parents.indexOf(mode_parent) !== -1) {
+            mode.parent = mode_parent;
+        }
+
         $('title').text($('title').text() + ' - ' + mode_name.ucfirst());
 
         // Pause time on lost focus
@@ -37,24 +51,48 @@ $(document).ready(function() {
         }
 
         mode_inheritance(mode);
-        // Bugfix for Firefox OS
+
+        // XXX : Bugfix for Firefox OS
         setTimeout(mode.init, 100);
     } else {
         // Select a mode
         var html = '<div class="select-mode"><h1>Tap the Black Tiles<br /><small>Select a mode...</small></h1>';
         for(mode in modes) {
-            var high_score = (parseInt(localStorage.getItem('score.' + mode)) || 0);
-            html += '<a href="index.html?' + mode + '">' + mode.replace('_', ' ') + ' <br><small>High score : ' + high_score + '</small></a>';
+            if(mode.search(/^_/) == 0) {
+                continue;
+            }
+            var info_html = '<br/><small class="high-score"></small>';
+            var parents_html = "";
+            
+            modes[mode].parents.forEach(function(p) {
+                var high_score = parseInt(localStorage.getItem('score.' + mode + '.' + p)) || 0;
+                parents_html += '<a href="?' + mode + '/' + p + '">'
+                    + p.replace(/_/g, ' ')
+                    + ' <br /><small class="high-score">Best : ' + high_score + '</small>'
+                    + '</a>';
+            });
+            
+            html += '<div href="#!" onclick="select_mode(this, \'' + mode + '\')">'
+                + '<i class="name">' + mode.replace(/_/g, ' ') + '</i>'
+                + info_html
+                + parents_html
+                + '</div>';
         }
-        html += '<a href="about.html"><br />About this game...</a>';
+        html += '<div onclick="select_mode(this, \'_random\')"><i class="name">Random</i><br /></div>';
+
+        html += '<div onclick="select_mode(this, null)"><br /><i class="name">More...</i><br />'
+            + '<a href="about.html">About this game</a>'
+            + '<a href="high-scores.html">High Scores</a>'
+            + '</div>';
         html += '</div>';
         $('html').addClass('menu')
         $('body').addClass('menu').html(html);
+        $('.select-mode div a').fadeTo(0, 0);
     }
 });
 
 /* The functions to handle the game are defined for each mode
- * in this JSON object. For instance, modes.classic.init contains
+ * in this JSON object. For instance, modes._base.init contains
  * the function to execute when the game starts. Note that the
  * standard functions for a mode are init, append, move, speedUp,
  * tap and lost, but the only required function is init, since
@@ -63,92 +101,70 @@ $(document).ready(function() {
  * The modes are fetched from here in the "Select a mode" section.
  */
 var modes = {
-    arcade: {
+    // Non-playable mode with a common base for all the other modes
+    _base: {
         init: function() {
-            $('#restart, #game-over, #quit').hide();
             mode.body_height = $('body').height();
+            mode.score = 0;
+            mode.last_move = time();
+            mode.scroll_top = 0;
+            console.log(mode);
             mode.append();
             mode.row_height = $('div').height();
             mode.speed = mode.row_height*2;
-            mode.score = 0;
-            mode.last_move = time();
-            mode.move();
-            mode.scroll_top = 0;
-            mode.row_height = $('div').height();
-            mode.body_height = $('body').height();
         },
-        append: function() {
-            var tiles = [
+        generate_tiles: function() {
+            return [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
                 '<span class="black"></span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
+            ].shuffle();
+        },
+        append: function() {
+            var tiles = mode.generate_tiles();
             $('body').children().first().before('<div>' + tiles.join('') + '</div>');
             $('body div').first().children().bind(touch_event, function() { tap(this) });
-            mode.speedUp();
         },
-        move: function() {
-            if(!time()) {
-                setTimeout(mode.move, 3);
-                return;
+        validate_tap: function(context) {
+            if(hasClass(context, 'black')) {
+                return 'good';
+            } else if(!hasClass(context, 'gray')) {
+                return 'bad';
             }
-
-            var delta_y = (time() - mode.last_move)/1000 * mode.speed;
-            mode.last_move = time();
-
-            mode.scroll_top = (mode.scroll_top + delta_y);
-            if(mode.scroll_top >= mode.row_height) {
-                mode.append();
-                mode.scroll_top=0;
-            }
-
-            mode.check_death();
-
-            setTimeout(mode.move, 30);
+            return 'ignore';
         },
-        check_death: function() {
-            $('div').css({
-                top: mode.scroll_top - mode.row_height + 'px'
-            }).each(function() {
-                if($(this).position().top > mode.body_height) {
-                    if($(this).children('.black').length) {
-                        $(this).children('.black').removeClass('black').addClass('red');
-                        mode.move = function() {};
-                        $('div').animate({
-                            top: (-2*mode.row_height) + 'px'
-                        }, 1000, function() {
-                            mode.lost();
-                        });
-                    } else {
-                        $(this).remove();
-                    }
-                }
-            });
+        // We always need more callbacks
+        tap_callbacks_good: function(context) {
+            context.classList.remove('black');
+            context.classList.add('gray');
+            mode.score++;
+            $('#score').text(mode.score);
         },
-        speedUp: function() {
-            mode.speed += mode.row_height*0.05;
+        tap_callbacks_bad: function(context){
+            $(context).addClass('red');
+            mode.move = function() {};
+            mode.lost();
         },
+        tap_callbacks_ignore: function() {},
         tap: function(context) {
-            if($(context).hasClass('black')) {
-                $(context).removeClass('black').addClass('gray');
-                mode.score++;
-                $('#score').text(mode.score);
-            } else if(!$(context).hasClass('gray')) {
-                $(context).addClass('red');
-                mode.move = function() {};
-                mode.lost();
-            }
+            var tap_value = mode.validate_tap(context);
+            mode['tap_callbacks_' + tap_value](context);
             navigator.vibrate(50);
         },
         lost: function() {
             $('span').unbind(touch_event);
             $('#final-score').text(mode.score);
-            localStorage.setItem('score.' + mode_name, Math.max(parseInt(localStorage.getItem('score.' + mode_name)) || 0, mode.score));
-            $('#high-score').text(localStorage.getItem('score.' + mode_name));
+
+            var item = 'score.' + mode_name + '.' + mode.parent;
+            var current_high_score = parseInt(localStorage.getItem(item)) || 0;
+
+            if(current_high_score < mode.score) {
+                $('#new-high-score').show();
+                localStorage.setItem(item, mode.score);
+            }
+
+            $('#high-score').text(localStorage.getItem(item));
             $('#game-over').fadeIn(1000);
             $('#restart, #quit').delay(400).fadeIn('600');
         },
@@ -164,32 +180,76 @@ var modes = {
                 mode.tap = tap;
                 mode.speedUp = speedUp;
             }, timeout);
-        }
+        },
     },
-    zen: {
+    _arcade: {
+        parent: '_base',
         init: function() {
-            $('#restart, #game-over, #quit').hide();
-            mode.body_height = $('body').height();
-            mode.append();
-            mode.append();
-            mode.append();
-            mode.last_move = time();
-            mode.row_height = $('div').first().height();
-            mode.speed = mode.row_height;
-            mode.score = 0;
+            parent('_arcade').init();
+            mode.move();
         },
         append: function() {
-            var tiles = [
-                '<span></span>',
-                '<span></span>',
-                '<span></span>',
-                '<span class="black"></span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
+            parent('_arcade').append();
+            mode.speedUp();
+        },
+        move: function() {
+            if(!time()) {
+                setTimeout(mode.move, 3);
+                return;
+            }
+
+            var delta_y = (time() - mode.last_move)/1000 * mode.speed;
+            mode.last_move = time();
+
+            mode.scroll_top = (mode.scroll_top + delta_y);
+            if(mode.scroll_top >= mode.row_height) {
+                mode.append();
+                mode.scroll_top = 0;
+            }
+
+            mode.check_death();
+
+            setTimeout(mode.move, 40);
+        },
+        death_condition: function(last_row) {
+            return $(last_row).children('.black').length;
+        },
+        missed_tile_red: function(last_row) {
+            $(last_row).children('.black').addClass('red');
+        },
+        check_death: function() {
+            $('div').css({
+                top: mode.scroll_top - mode.row_height + 'px'
+            }).last().each(function() {
+                if($(this).position().top > mode.body_height) {
+                    if(mode.death_condition(this)) {
+                        mode.missed_tile_red(this);
+                        mode.move = function() {};
+                        $('div').animate({
+                            top: (-2*mode.row_height) + 'px'
+                        }, 1000, function() {
+                            mode.lost();
+                        });
+                    } else {
+                        $(this).remove();
+                    }
+                }
             });
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
+        },
+        speedUp: function() {
+            mode.speed += mode.row_height*0.05;
+        }
+    },
+    _zen: {
+        parent: '_base',
+        init: function() {
+            parent('_zen').init();
+            mode.append();
+            mode.append();
+            mode.speed = mode.row_height;
+        },
+        death_condition: function() {
+            return $(this).children('.black').length;
         },
         move: function() {
             mode.append();
@@ -201,7 +261,7 @@ var modes = {
 
             $('div').each(function() {
                 if($(this).position().top >= mode.body_height) {
-                    if($(this).children('.black').length) {
+                    if(mode.death_condition(this)) {
                         $('div').animate({
                             top: (-mode.row_height*2) + 'px'
                         }, 1000, function() {
@@ -215,27 +275,35 @@ var modes = {
                 }
             });
         },
-        tap: function(context) {
-            if($(context).hasClass('black') && !$(context).parent().next('div').find('.black').length) {
-                $(context).removeClass('black').addClass('gray');
-                mode.score++;
-                $('#score').text(mode.score);
-                mode.move();
-            } else if(!$(context).hasClass('gray')) {
-                $(context).addClass('red');
-                mode.move = function() {};
-                mode.lost();
+        validate_tap: function(context) {
+            if(hasClass(context, 'black') && !$(context).parent().next('div').find('.black').length) {
+                return 'good';
             }
-            navigator.vibrate(50);
+            return 'bad';
         },
-        lost: function() {
-            modes.arcade.lost();
+        tap_callbacks_good: function(context) {
+            parent('_zen').tap_callbacks_good(context);
+            mode.move();
         }
     },
+    _stamina: {
+        parent: '_arcade',
+        speedUp: function() {},
+    },
+    _random_speed: {
+        parent: '_arcade',
+        speedUp: function() {
+            mode.speed = mode.row_height * (Math.random() * 5) + mode.row_height/2;
+        },
+    },
+    classic: {
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
+    },
+    // TODO : Replace by a level system (slow, normal, fast)
     faster: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina'],
         init: function() {
-            modes.arcade.init();
+            parent('faster').init();
             mode.speed = mode.row_height*3.3;
         },
         speedUp: function() {
@@ -243,14 +311,14 @@ var modes = {
         },
     },
     flash: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
-            modes.arcade.init();
+            parent('flash').init();
             mode.flash();
-            mode.invert = 0;
         },
+        invert: 3,
         append: function() {
-            modes.arcade.append();
+            parent('flash').append();
             mode.flash();
         },
         flash: function() {
@@ -263,43 +331,13 @@ var modes = {
             mode.invert %= 4;
         }
     },
-    endurance: {
-        parent: 'arcade',
-        speedUp: function() {},
-    },
-    faster_endurance: {
-        parent: 'faster',
-        speedUp: function() {},
-    },
-    random_speed: {
-        parent: 'arcade',
-        speedUp: function() {
-            mode.speed = mode.row_height * (Math.random() * 5) + mode.row_height/2;
-        },
-    },/* FIXME : This hack doesn't work on webkit...
-    backwards: {
-        parent: 'arcade',
-        init: function() {
-            modes.arcade.init();
-            $('body, #score').css({
-                transform: 'rotate(180deg)'
-            });
-        },
-        lost: function() {
-            modes.arcade.lost();
-            $('body, #score').css({
-                transition: 'transform 1s ease-in-out 0s',
-                transform: 'rotate(0deg)'
-            });
-        }
-    },*/
     /*sprint: {
         // TODO : You've got 15 seconds to tap all the black tiles you can
     },*/
     double: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina'],
         append: function() {
-            modes.arcade.append();
+            parent('double').append();
             var double = false;
             $('div:eq(0) span:not("black")').each(function() {
                 if(!double && Math.random() < 0.05) {
@@ -310,74 +348,51 @@ var modes = {
         },
     },
     triple: {
-        parent: 'arcade',
-        append: function() {
-            var tiles = [
+        parents: ['_arcade', '_stamina'],
+        generate_tiles: function() {
+            return [
                 '<span></span>',
                 '<span class="black"></span>',
                 '<span class="black"></span>',
                 '<span class="black"></span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
-            mode.speedUp();
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
+            ].shuffle();
         },
     },
     trap: {
-        parent: 'arcade',
-        append: function() {
-            var tiles = [
+        parents: ['_arcade', '_stamina'],
+        generate_tiles: function() {
+            return [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
                 Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="trap"><br />/!\\</span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
-            mode.speedUp();
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
+            ].shuffle();
         },
     },
     twice: {
-        parent: 'arcade',
-        append: function() {
-            var tiles = [
+        parents: ['_arcade', '_stamina'],
+        generate_tiles: function() {
+            return [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
                 Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="twice black"><br/>2x</span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
-            mode.speedUp();
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
+            ].shuffle();
         },
-        tap: function(context) {
-            if($(context).hasClass('black') && !$(context).hasClass('twice')) {
-                $(context).removeClass('black').addClass('gray');
-                mode.score++;
-                $('#score').text(mode.score);
-            } else if($(context).hasClass('twice')) {
-                $(context).removeClass('twice').text('');
-            } else if(!$(context).hasClass('gray')) {
-                $(context).addClass('red');
-                mode.move = function() {};
-                mode.lost();
+        validate_tap: function(context) {
+            if(hasClass(context, 'twice')) {
+                return 'twice';
             }
-            navigator.vibrate(50);
+            return parent('twice').validate_tap(context);
+        },
+        tap_callbacks_twice: function(context) {
+            $(context).removeClass('twice').text('');
         },
     },
     bastard: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina'],
         append: function() {
-            modes.arcade.append();
+            parent('bastard').append();
             var bastard = false;
             $('div:nth-child(1) span, div:nth-child(2) span').each(function() {
                 if(!bastard && Math.random() < 0.15) {
@@ -388,26 +403,20 @@ var modes = {
         },
     },
     hardcore: {
-        parent: 'arcade',
-        append: function() {
-            var tiles = [
+        parents: ['_arcade', '_stamina'],
+        generate_tiles: function() {
+            return [
                 '<span class="black"></span>',
                 '<span class="black"></span>',
                 '<span class="black"></span>',
                 '<span class="black"></span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
-            mode.speedUp();
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
+            ];
         },
     },
     disco: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         append: function() {
-            modes.arcade.append();
+            parent('disco').append();
             var that = this;
             $('span').each(function() {
                 $(this).css({
@@ -418,7 +427,7 @@ var modes = {
         colors: ['#00C', '#0CC', '#0C0', '#CC0', '#C0C', '#C00']
     },
     deterministic: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         append: function() {
             var tiles = [];
             for(var i = 0; i<4; i++) {
@@ -430,71 +439,52 @@ var modes = {
             $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
         row: 0,
-        next: function() { return Math.round(Math.abs(Math.sin(mode.row * 13729 + 9))*13*13*13) % 4 }
+        next: function() {
+            return Math.round(Math.abs(Math.sin(mode.row * 13729 + 9))*13*13*13) % 4
+        }
     },
     loop: {
-        parent: 'deterministic',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
-            mode.loop = [0, 1, 2, 3, 0, 1, 2, 3].sort(function() {
-                return Math.random() > 0.5;
-            });
-            modes.deterministic.init();
+            mode.loop = [0, 1, 2, 3, 0, 1, 2, 3].shuffle();
+            mode.append = modes.deterministic.append;
+            parent('loop').init();
         },
-        next: function() { return mode.loop[mode.row % mode.loop.length] }
+        row: 0,
+        next: function() {
+            return mode.loop[mode.row % mode.loop.length]
+        }
     },
     odd_numbers: {
-        parent: 'arcade',
-        append: function() {
+        parents: ['_arcade', '_stamina'],
+        generate_tiles: function() {
             var number = rand_int(0, 100);
-            var tiles = [
+            return [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
-                '<span class="black' + (number % 2 ? ' good' : '') + '"><br />' + number + '</span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
-            mode.speedUp();
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
+                '<span class="black' + (number & 1 ? ' good' : '') + '"><br />' + number + '</span>'
+            ].shuffle();
         },
-        check_death: function() {
-            $('div').css({
-                top: mode.scroll_top - mode.row_height + 'px'
-            }).each(function() {
-                if($(this).position().top > mode.body_height) {
-                    if($(this).children('.good').length) {
-                        $(this).children('.good').removeClass('good').addClass('red');
-                        mode.move = function() {};
-                        $('div').animate({
-                            top: (-2*mode.row_height) + 'px'
-                        }, 1000, function() {
-                            mode.lost();
-                        });
-                    } else {
-                        $(this).remove();
-                    }
-                }
-            });
+        death_condition: function(last_row) {
+            return $(last_row).children('.good').not('.gray').length;
         },
-        tap: function(context) {
-            if($(context).hasClass('good')) {
-                $(context).removeClass('black').removeClass('good').addClass('gray').text('');
-                mode.score++;
-                $('#score').text(mode.score);
-            } else if(!$(context).hasClass('gray')) {
-                $(context).addClass('red');
-                mode.move = function() {};
-                mode.lost();
+        validate_tap: function(context) {
+            if(hasClass(context, 'good')) {
+                return 'good';
+            } else if(!hasClass(context, 'gray')) {
+                return 'bad';
             }
-            navigator.vibrate(50);
+        },
+        tap_callbacks_good: function(context) {
+            parent('odd_numbers').tap_callbacks_good(context);
+            context.textContent = '';
         },
     },
     annoying_circle: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
-            modes.arcade.init();
+            parent('annoying_circle').init();
             $('body').children().first().before('<p id="blocking-circle"></p>');
             mode.move_circle();
         },
@@ -506,11 +496,12 @@ var modes = {
         }
     },
     flip: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
-            modes.arcade.init();
+            parent('flip').init();
             $('body, #score').css({
-                transition: 'transform 0.1s ease-in-out 0s'
+                'transition': 'transform 1s ease-in-out',
+                'transitionDuration': '0.6s',
             });
             setTimeout(function() {
                 mode.transform();
@@ -524,46 +515,25 @@ var modes = {
             });
             mode.transform_state = -mode.transform_state;
             setTimeout(function() {
-                mode.transform()
+                mode.transform();
             }, rand_int(4000, 16000));
         },
         lost: function() {
-            modes.arcade.lost();
+            parent('flip').lost();
             mode.transform = function() {};
             $('body, #score').css({
                 transform: 'scale(1, 1)',
                 transitionDuration: '1s',
             });
         }
-    },/* FIXME : Doesn't work on webkit browsers
-    rotate: {
-        parent: 'flip',
-        transform_state: 180,
-        transform: function() {
-            mode.freeze(600);
-            $('body, #score').css({
-                transform: 'rotate(' + mode.transform_state + 'deg)',
-            });
-            mode.transform_state += 180;
-            setTimeout(function() {
-                mode.transform();
-            }, rand_int(4000, 16000));
-        },
-        lost: function() {
-            modes.arcade.lost();
-            mode.transform = function() {};
-            $('body, #score').css({
-                transform: 'rotate(0deg)',
-                transitionDuration: '1s',
-            });
-        }
-    },*/
+    },
     zig_zag: {
-        parent: 'flip',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
-            modes.arcade.init();
+            parent('zig_zag').init();
             $('body, #score').css({
-                transition: 'transform 1s ease-in-out 0s'
+                transition: 'transform 1s ease-in-out',
+                'transitionDuration': '0.6s',
             });
             mode.transform_state = parseInt($('body').width()/7);
             mode.transform();
@@ -577,39 +547,18 @@ var modes = {
                 mode.transform();
             }, 1000);
         },
-    },
-    freeze: {
-        parent: 'arcade',
-        init: function() {
-            modes.arcade.init();
-
-            setTimeout(function() {
-                mode.stop();
-            }, rand_int(4000, 9000));
-        },
-        stop: function() {
-            var timeout = rand_int(500, 2300);
-            mode.freeze(timeout);
-            $('body').fadeTo('fast', 0.5);
-
-            setTimeout(function() {
-                $('body').fadeTo('fast', 1);
-            }, timeout);
-
-            setTimeout(function() {
-                mode.stop();
-            }, rand_int(4000, 9000));
-        },
         lost: function() {
-            modes.arcade.lost();
-            mode.stop = function() {};
-            $('body').fadeTo('fast', 1);
+            parent('zig_zag').lost();
+            mode.transform = function() {};
+            $('body, #score').css({
+                transform: 'translate(0px)',
+            });
         }
     },
     scramble: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
-            modes.arcade.init();
+            parent('scramble').init();
 
             setTimeout(function() {
                 mode.scramble();
@@ -636,54 +585,41 @@ var modes = {
             }, rand_int(4000, 9000));
         },
         lost: function() {
-            modes.arcade.lost();
+            parent('scramble').lost();
             mode.scramble = function() {};
             $('body').fadeTo('fast', 1);
         }
     },
     right_color: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_random_speed'],
         init: function() {
-            modes.arcade.init();
+            parent('right_color').init();
             $('body').children().first().before('<p id="color-indicator"></p><p id="time-indicator"></p>');
             mode.last_color_modification = -3000;
             mode.next_color = mode.colors.choose();
             mode.change_color();
             mode.speed = mode.row_height*3;
         },
-        append: function() {
-            var tiles = [
+        generate_tiles: function() {
+            return [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
                 '<span class="good" style="background-color: ' + mode.colors.choose() + '"></span>'
-            ].sort(function(){
-                // Random sort
-                return Math.random() > 0.5;
-            });
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
-            mode.speedUp();
+            ].shuffle();
         },
-        check_death: function() {
-            $('div').css({
-                top: mode.scroll_top - mode.row_height + 'px'
-            }).each(function() {
-                if($(this).position().top > mode.body_height) {
-                    if($(this).children('.good[style="background-color: ' + mode.color + '"]').length
-                       && $(this).position().top > mode.body_height - mode.row_height) {
-                        $(this).children('.good').removeClass('good').addClass('red');
-                        mode.move = function() {};
-                        $('div').animate({
-                            top: (-2*mode.row_height) + 'px'
-                        }, 1000, function() {
-                            mode.lost();
-                        });
-                    } else {
-                        $(this).remove();
-                    }
-                }
-            });
+        death_condition: function(last_row) {
+            return $(last_row).children('.good[style="background-color: ' + mode.color + '"]').length
+                       && $(last_row).position().top > mode.body_height - mode.row_height;
+        },
+        missed_tile_red: function(last_row) {
+            $(last_row).children('.good').css('background-color', 'red');
+        },
+        validate_tap: function(context) {
+            if(hasClass(context, 'good')) {
+                return 'good';
+            }
+            return parent('right_color').validate_tap(context);
         },
         tap: function(context) {
             if($(context).hasClass('good') && $(context).css('backgroundColor') == mode.color) {
@@ -697,9 +633,8 @@ var modes = {
             }
             navigator.vibrate(50);
         },
-        speedUp: function() {},
         lost: function() {
-            modes.arcade.lost();
+            parent('right_color').lost();
             mode.change_color = function() {};
         },
         change_color: function() {
@@ -728,48 +663,72 @@ var modes = {
         last_color_modification: 0,
     },
     mirror: {
-        parent: 'arcade',
+        parents: ['_arcade', '_stamina', '_zen'],
         append: function() {
-            modes.arcade.append();
+            parent('mirror').append();
             $('div').first().children().each(function(index) {
                 if($($(this).parent().children().get(3 - index)).hasClass('black')) {
                     $(this).addClass('good');
                 }
             });
         },
-        check_death: function() {
-            $('div').css({
-                top: mode.scroll_top - mode.row_height + 'px'
-            }).each(function() {
-                if($(this).position().top > mode.body_height) {
-                    if($(this).children('.good').length) {
-                        $(this).children('.good').removeClass('good').addClass('red');
-                        mode.move = function() {};
-                        $('div').animate({
-                            top: (-2*mode.row_height) + 'px'
-                        }, 1000, function() {
-                            mode.lost();
-                        });
-                    } else if($(this).position().top > mode.body_height) {
-                        $(this).remove();
-                    }
-                }
-            });
+        death_condition: function(last_row) {
+            return !hasClass($(last_row).children('.good')[0], 'gray');
         },
-        tap: function(context) {
-            if($(context).hasClass('good')) {
-                $(context).removeClass('good').addClass('gray');
-                mode.score++;
-                $('#score').text(mode.score);
-            } else if(!$(context).hasClass('gray')) {
-                $(context).addClass('red');
-                mode.move = function() {};
-                mode.lost();
+        validate_tap: function(context) {
+            if(hasClass(context, 'good') && !hasClass(context, 'gray')) {
+                return 'good';
             }
-            navigator.vibrate(50);
+            return 'bad';
         },
+    },
+    _random: {
+        init: function() {
+            var keys = [];
+            for(var m in modes) {
+                keys.push(m);
+            }
+            var name = keys.shuffle()[0];
+            var url = '?' + name;
+
+            if('parents' in modes[name]) {
+                url += '/' + modes[name].parents.shuffle()[0];
+            }
+            window.location = url;
+        }
     }
 };
+
+function select_mode(context, mode) {
+    if(mode && !('parents' in modes[mode])) {
+        window.location = '?' + mode;
+        return;
+    }
+
+    if($(context).hasClass('selected')) {
+        $(context).removeClass('selected');
+        $('a', context).fadeTo('fast', 0);
+        $('.select-mode div').css({width: '50%', height: '100px'});
+        return;
+    }
+
+    $('.selected a').fadeTo('fast', 0);
+    $('.selected').removeClass('selected');
+
+    var children = $(context).children('a').length;
+    $(context).children('a').css('width', 100/children + '%');
+    $(context)
+        .addClass('selected')
+        .css({width: '100%', height: '200px'});
+    $('a', context).fadeTo('fast', 1);
+
+    var sibiling = (($(context).index() + 1) % 2) ? $(context).prev() : $(context).next();
+    sibiling.css({width: '0px', height: '200px'}).delay(0.2).css('height', 0);
+
+    $('.select-mode div').not(context).not(sibiling).css({width: '50%', height: '100px'});
+
+    $('html,body').animate({ scrollTop: $(context).offset().top - ( $(window).height() - $(context).outerHeight(true) ) / 4  }, 200);
+}
 
 function tap(context) {
     if(!time()) {
@@ -797,6 +756,16 @@ function mode_inheritance(mode) {
     }
 }
 
+/**
+ * Yeah... This is where it gets *real* hackish...
+ * Since this mess of callbacks never provides a coherent 'this', you have
+ * to specify who's parent you need to access...
+ * At least, this wrapper makes it a bit cleaner.
+ */
+function parent(mode) {
+    return modes[modes[mode].parent];
+}
+
 function rand_int(min_rand, max_rand) {
     return parseInt(min_rand + (Math.random()*1000 % (max_rand - min_rand)));
 }
@@ -818,3 +787,20 @@ String.prototype.ucfirst = function() {
     string[0] = string[0].toUpperCase();
     return string.join('');
 };
+
+// https://jsperf.com/pure-js-hasclass-vs-jquery-hasclass/40 (classListContains)
+function hasClass(el, className) {
+    return el.classList.contains(className);
+}
+
+// See https://jsperf.com/array-shuffle-comparator/14
+Array.prototype.shuffle = function() {
+    var temp, j, i = this.length;
+    while (--i) {
+	    j = ~~(Math.random() * (i + 1));
+	    temp = this[i];
+	    this[i] = this[j];
+	    this[j] = temp;
+    }
+    return this;
+}

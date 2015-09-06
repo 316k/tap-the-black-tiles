@@ -11,7 +11,7 @@
     height: auto;
 }
 
-.select-mode a {
+.select-mode div {
     text-transform: capitalize;
     text-decoration: none;
     font-size: x-large;
@@ -24,19 +24,62 @@
     height: 100px;
     display: block;
     float: left;
+    overflow: hidden;
+    transition: width 0.2s, height 0.2s;
+    transition-timing-function: linear;
 }
 
-.select-mode a:nth-child(4n), .select-mode a:nth-child(4n + 3) {
+.select-mode div.selected {
+    box-shadow: 0px 0px 15px gray;
+    z-index: 100;
+}
+
+.select-mode div:nth-child(4n),
+.select-mode div:nth-child(4n + 3) {
     background-color: white;
     color: black;
 }
 
-.select-mode a:hover {
+.select-mode div.selected a:nth-child(2n) {
+    background-color: black;
+    color: white;
+}
+
+.select-mode div:not(.selected):hover,
+.select-mode div.selected a:hover {
     background-color: #444;
 }
 
-.select-mode a small {
+.select-mode div small {
     font-size: medium;
+    padding-bottom: 5px;
+}
+
+.select-mode div i.name {
+    text-decoration: none;
+    font-style: normal;
+}
+
+.select-mode div a {
+    display: block;
+    pointer-events: none;
+    color: black;
+    text-decoration: none;
+    font-size: 20px;
+    display: block;
+    float: left;
+    margin-top: 15px;
+    height: 155px;
+    padding-top: 30px;
+    background-color: white;
+}
+
+.select-mode div.selected a {
+    pointer-events: auto;
+}
+
+.select-mode div.selected > small {
+    display: none;
 }
 
 html, body {
@@ -57,6 +100,16 @@ body.menu {
     background-color: black;
     overflow: auto;
     position: static;
+}
+
+body.about {
+    padding: 0;
+}
+
+body.about p, body.about h1 {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 div {
