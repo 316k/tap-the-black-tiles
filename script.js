@@ -167,7 +167,7 @@ var modes = {
                 localStorage.setItem(item, mode.score);
             }
 
-            $('#high-score').text(localStorage.getItem(item));
+            $('#high-score').text(localStorage.getItem(item) || 0);
             $('#game-over').fadeIn(1000);
             $('#restart, #quit').delay(400).fadeIn('600');
         },
