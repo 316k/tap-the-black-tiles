@@ -108,7 +108,7 @@ var modes = {
             mode.score = 0;
             mode.last_move = time();
             mode.scroll_top = 0;
-            console.log(mode);
+            console.log(mode_name, mode_parent);
             mode.append();
             mode.row_height = $('div').height();
             mode.speed = mode.row_height*2;
@@ -698,7 +698,9 @@ var modes = {
         init: function() {
             var keys = [];
             for(var m in modes) {
-                keys.push(m);
+                if(!m.search(/^_/)) {
+                    keys.push(m);
+                }
             }
             var name = keys.shuffle()[0];
             var url = '?' + name;
