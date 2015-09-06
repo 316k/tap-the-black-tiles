@@ -58,7 +58,7 @@ $(document).ready(function() {
         // Select a mode
         var html = '<div class="select-mode"><h1>Tap the Black Tiles<br /><small>Select a mode...</small></h1>';
         for(mode in modes) {
-            if(mode.search(/^_/) == 0) {
+            if(mode.search(/^_/) === 0) {
                 continue;
             }
             var info_html = '<br/><small class="high-score"></small>';
@@ -698,7 +698,7 @@ var modes = {
         init: function() {
             var keys = [];
             for(var m in modes) {
-                if(!m.search(/^_/)) {
+                if(m.search(/^_/) === 0) {
                     keys.push(m);
                 }
             }
