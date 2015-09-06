@@ -139,7 +139,7 @@ var modes = {
             context.classList.remove('black');
             context.classList.add('gray');
             mode.score++;
-            $('#score').text(mode.score);
+            document.getElementById('score').textContent = mode.score;
         },
         tap_callbacks_bad: function(context){
             $(context).addClass('red');
@@ -150,7 +150,10 @@ var modes = {
         tap: function(context) {
             var tap_value = mode.validate_tap(context);
             mode['tap_callbacks_' + tap_value](context);
-            navigator.vibrate(50);
+            vibrate();
+        },
+        death_condition: function(context) {
+            return $(context).children('.black').length;
         },
         lost: function() {
             $('span').unbind(touch_event);
@@ -211,9 +214,6 @@ var modes = {
 
             setTimeout(mode.move, 40);
         },
-        death_condition: function(last_row) {
-            return $(last_row).children('.black').length;
-        },
         missed_tile_red: function(last_row) {
             $(last_row).children('.black').addClass('red');
         },
@@ -247,9 +247,6 @@ var modes = {
             mode.append();
             mode.append();
             mode.speed = mode.row_height;
-        },
-        death_condition: function() {
-            return $(this).children('.black').length;
         },
         move: function() {
             mode.append();
@@ -493,6 +490,23 @@ var modes = {
                 top: rand_int(0, 0.8 * mode.body_height) + 'px',
                 left: rand_int(0, $('body').width()/2) + 'px',
             }, 1200, mode.move_circle);
+        }
+    },
+    no_feedback: {
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
+        init: function() {
+            parent('no_feedback').init();
+            vibrate = function() {};
+        },
+        death_condition: function(last_row) {
+            return $(last_row).children('.black').not('.tapped').length;
+        },
+        tap_callbacks_good: function(context) {
+            parent('no_feedback').tap_callbacks_good(context);
+            document.getElementById('score').textContent = '0';
+            context.classList.remove('gray');
+            context.classList.add('black');
+            context.classList.add('tapped');
         }
     },
     flip: {
@@ -768,6 +782,10 @@ function time() {
     }
 
     return window.performance.now() + time_delay;
+}
+
+function vibrate() {
+    navigator.vibrate(50);
 }
 
 Array.prototype.choose = function() {
