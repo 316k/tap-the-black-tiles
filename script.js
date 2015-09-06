@@ -723,7 +723,7 @@ var modes = {
         init: function() {
             var keys = [];
             for(var m in modes) {
-                if(m.search(/^_/) === 0) {
+                if(m.search(/^_/) !== 0) {
                     keys.push(m);
                 }
             }
