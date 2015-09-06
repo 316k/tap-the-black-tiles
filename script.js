@@ -616,22 +616,14 @@ var modes = {
             $(last_row).children('.good').css('background-color', 'red');
         },
         validate_tap: function(context) {
-            if(hasClass(context, 'good')) {
+            if(hasClass(context, 'good') && $(context).css('backgroundColor') == mode.color) {
                 return 'good';
             }
             return parent('right_color').validate_tap(context);
         },
-        tap: function(context) {
-            if($(context).hasClass('good') && $(context).css('backgroundColor') == mode.color) {
-                $(context).removeClass('good').addClass('gray');
-                mode.score++;
-                $('#score').text(mode.score);
-            } else if(!$(context).hasClass('gray')) {
-                $(context).addClass('red');
-                mode.move = function() {};
-                mode.lost();
-            }
-            navigator.vibrate(50);
+        tap_callbacks_good: function(context) {
+                parent('right_color').tap_callbacks_good(context);
+                context.classList.remove('good');
         },
         lost: function() {
             parent('right_color').lost();
