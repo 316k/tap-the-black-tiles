@@ -515,6 +515,31 @@ var modes = {
             context.classList.add('tapped');
         }
     },
+    one_at_the_time: {
+        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
+        init: function() {
+            parent('one_at_the_time').init();
+            $('div').last().children().get(rand_int(0,4)).classList.add('black');
+        },
+        generate_tiles : function() {
+            return [
+                '<span></span>',
+                '<span></span>',
+                '<span></span>',
+                '<span></span>'
+            ];
+        },
+        validate_tap: function(context) {
+            if(context.parentElement.previousElementSibling === null) {
+                return 'ignore';
+            }
+            return parent('one_at_the_time').validate_tap(context);
+        },
+        tap_callbacks_good: function(context) {
+            parent('one_at_the_time').tap_callbacks_good(context);
+            $(context).parent().prev().children().get(rand_int(0,4)).classList.add('black');
+        },
+    },
     flip: {
         parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {

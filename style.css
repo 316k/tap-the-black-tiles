@@ -58,6 +58,7 @@
 .select-mode div i.name {
     text-decoration: none;
     font-style: normal;
+    padding: 5px;
 }
 
 .select-mode div a {
