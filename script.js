@@ -732,8 +732,6 @@ function select_mode(context, mode) {
     sibiling.css({width: '0px', height: '200px'}).delay(0.2).css('height', 0);
 
     $('.select-mode div').not(context).not(sibiling).css({width: '50%', height: '100px'});
-
-    $('html,body').animate({ scrollTop: $(context).offset().top - ( $(window).height() - $(context).outerHeight(true) ) / 4  }, 200);
 }
 
 function tap(context) {
