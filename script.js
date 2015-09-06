@@ -501,6 +501,12 @@ var modes = {
         death_condition: function(last_row) {
             return $(last_row).children('.black').not('.tapped').length;
         },
+        validate_tap: function(context) {
+            if(hasClass(context, 'black') && !$(context).parent().next('div').find('.black').not('.tapped').length) {
+                return 'good';
+            }
+            return 'bad';
+        },
         tap_callbacks_good: function(context) {
             parent('no_feedback').tap_callbacks_good(context);
             document.getElementById('score').textContent = '0';
