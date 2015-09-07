@@ -425,15 +425,16 @@ var modes = {
     },
     deterministic: {
         parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
-        append: function() {
+        generate_tiles: function() {
             var tiles = [];
             for(var i = 0; i<4; i++) {
                 tiles.push(i == this.next() ? '<span class="black"></span>' : '<span></span>');
             }
+            return tiles;
+        },
+        append: function() {
+            parent('deterministic').append();
             this.row++;
-            mode.speedUp();
-            $('body').children().first().before('<div>' + tiles.join('') + '</div>');
-            $('body div').first().children().bind(touch_event, function() { tap(this) });
         },
         row: 0,
         next: function() {
@@ -444,12 +445,16 @@ var modes = {
         parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
             mode.loop = [0, 1, 2, 3, 0, 1, 2, 3].shuffle();
-            mode.append = modes.deterministic.append;
+            mode.generate_tiles = modes.deterministic.generate_tiles;
             parent('loop').init();
+        },
+        append: function() {
+            parent('loop').append();
+            this.row++;
         },
         row: 0,
         next: function() {
-            return mode.loop[mode.row % mode.loop.length]
+            return mode.loop[mode.row % mode.loop.length];
         }
     },
     odd_numbers: {
