@@ -472,11 +472,10 @@ var modes = {
             return $(last_row).children('.good').not('.gray').length;
         },
         validate_tap: function(context) {
-            if(hasClass(context, 'good')) {
+            if(hasClass(context, 'good') && !hasClass(context, 'gray')) {
                 return 'good';
-            } else if(!hasClass(context, 'gray')) {
-                return 'bad';
             }
+            return parent('odd_numbers').validate_tap(context);
         },
         tap_callbacks_good: function(context) {
             parent('odd_numbers').tap_callbacks_good(context);
@@ -721,7 +720,7 @@ var modes = {
             if(hasClass(context, 'good') && !hasClass(context, 'gray')) {
                 return 'good';
             }
-            return 'bad';
+            return parent('mirror').validate_tap(context);
         },
     },
     _random: {
