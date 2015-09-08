@@ -7,8 +7,17 @@
         <link rel="shortcut icon" href="icon-128.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <style>
+
             html, body {
                 overflow-y: scroll;
+            }
+            body {
+                color: white;
+                background-color: black;
+            }
+            a {
+                color: gray;
+                font-style: italic;
             }
             table {
                 width: 96%;
@@ -16,6 +25,16 @@
                 margin-bottom: 30px;
                 text-align: center;
                 text-transform: capitalize;
+                border-collapse: collapse;
+                border: black 1px solid;
+                color: black;
+            }
+            tr {
+                border: black 1px solid;
+                background-color: white;
+            }
+            td, th {
+                border: 1px solid black;
             }
             th.headerSortUp:after {
                 content: ' ▼';
@@ -27,11 +46,14 @@
                 width: 30%;
                 float: right;
                 margin: 5%;
-                border: 1px solid black;
-                background: red;
+                border: none;
+                background: black;
                 background-image: none;
                 font-size: 17px;
-                color: black;
+                color: white;
+                font-weight: 0;
+                padding: 10px;
+                box-shadow: 0 0 10px white;
             }
         </style>
     </head>
@@ -59,8 +81,8 @@
                 var mode_name = key.replace(/^score\./, '');
                 var mode_type = '';
                 if(mode_name.match('\.')) {
-                    mode_name = key.split('.')[1].replace('_', ' ');
-                    mode_type = key.split('.')[2].replace('_', ' ');
+                    mode_name = key.split('.')[1].replace(/_/g, ' ');
+                    mode_type = key.split('.')[2].replace(/_/g, ' ');
                 }
                 $('tbody').append('<tr><td>' + mode_name + '</td><td>' + mode_type + '</td><td>' + window.localStorage.getItem(key) + '</td></tr>');
             }
