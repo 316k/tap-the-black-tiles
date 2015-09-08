@@ -423,30 +423,20 @@ var modes = {
         },
         colors: ['#00C', '#0CC', '#0C0', '#CC0', '#C0C', '#C00']
     },
-    deterministic: {
-        parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
-        generate_tiles: function() {
-            var tiles = [];
-            for(var i = 0; i<4; i++) {
-                tiles.push(i == this.next() ? '<span class="black"></span>' : '<span></span>');
-            }
-            return tiles;
-        },
-        append: function() {
-            parent('deterministic').append();
-            this.row++;
-        },
-        row: 0,
-        next: function() {
-            return Math.round(Math.abs(Math.sin(mode.row * 13729 + 9))*13*13*13) % 4
-        }
-    },
     loop: {
         parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
             mode.loop = [0, 1, 2, 3, 0, 1, 2, 3].shuffle();
             mode.generate_tiles = modes.deterministic.generate_tiles;
             parent('loop').init();
+        },
+        generate_tiles: function() {
+            var tiles = [];
+            var next = this.next();
+            for(var i = 0; i<4; i++) {
+                tiles.push(i == next ? '<span class="black"></span>' : '<span></span>');
+            }
+            return tiles;
         },
         append: function() {
             parent('loop').append();
