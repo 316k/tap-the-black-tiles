@@ -1,5 +1,34 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!![]&
+  []==[]==[]        ||      []*[]                                              &
+      []          ||  []    ||  []                                             &
+      []         ||!![]||   !![]                                               &
+      []        ||      !!  []                                                 &
+      []       ||        !! []                                                 &
+
+  []==[]==[]    ||    !!    []*!![]                                            &
+      []        ||    !!    []                                                 &
+      []        ||!![]||    []||[]                                             &
+      []        ||    !!    []                                                 &
+      []        ||    !!    []*!![]                                            &
+
+  []==[]        ||                  []             ||!![]   ||    ![]          &
+  []    ||      []                ||  []         &[]        ||   []            &
+  []    ||      []               ||    !!       []          || []              &
+  []||!![]      ||              !!      []     ||           !![]               &
+  []    ||      []             ||!![]||!![]     ||          [] &[]             &
+  []    ||      []            ||          !!     ![]        ||   []            &
+  []||[]        ||!![]||[]   ||            []      ||![]&   !!    ![]          &
+
+  []==[]==[]    &&[]*![]&&   []         ||[]&[]    ||![]                       &
+      []            ||       []         ||       []                            &
+      []            ||       []         ||[]&[]   &[]||[]                      &
+      []            ||       []         ||              []                     &
+      []        &&[]||[]&&   []&[]*[]   ||[]&!!    ![]&[]                      &
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!![]
+
 var mode, mode_name, mode_parent, last_focus = false, time_delay = 0;
 var touch_event = 'click';
+var game_over = false; // Used to play with a keyboard
 
 $(document).ready(function() {
 
@@ -19,6 +48,8 @@ $(document).ready(function() {
     }
 
     if(mode_name in modes) {
+
+        Keyboard.setup();
 
         if(window.droid) {
             // XXX : Beware : here lies the most terrible Android WebView bugfix in the history of the world
@@ -63,7 +94,7 @@ $(document).ready(function() {
             }
             var info_html = '<br/><small class="high-score"></small>';
             var parents_html = "";
-            
+
             modes[mode].parents.forEach(function(p) {
                 var high_score = parseInt(localStorage.getItem('score.' + mode + '.' + p)) || 0;
                 parents_html += '<a href="?' + mode + '/' + p + '">'
@@ -71,7 +102,7 @@ $(document).ready(function() {
                     + ' <br /><small class="high-score">Best : ' + high_score + '</small>'
                     + '</a>';
             });
-            
+
             html += '<div href="#!" onclick="select_mode(this, \'' + mode + '\')">'
                 + '<i class="name">' + mode.replace(/_/g, ' ') + '</i>'
                 + info_html
@@ -167,6 +198,8 @@ var modes = {
                 localStorage.setItem(item, mode.score);
             }
 
+            game_over = 1;
+
             $('#high-score').text(localStorage.getItem(item) || 0);
             $('#game-over').fadeIn(1000);
             $('#restart, #quit').delay(400).fadeIn('600');
@@ -232,6 +265,7 @@ var modes = {
                         });
                     } else {
                         $(this).remove();
+                        Keyboard.last_unclicked_row--;
                     }
                 }
             });
@@ -268,6 +302,7 @@ var modes = {
                         mode.lost();
                     } else {
                         $(this).remove();
+                        Keyboard.last_unclicked_row--;
                     }
                 }
             });
@@ -378,6 +413,7 @@ var modes = {
         },
         validate_tap: function(context) {
             if(hasClass(context, 'twice')) {
+                Keyboard.last_unclicked_row--;
                 return 'twice';
             }
             return parent('twice').validate_tap(context);
@@ -427,7 +463,6 @@ var modes = {
         parents: ['_arcade', '_stamina', '_zen', '_random_speed'],
         init: function() {
             mode.loop = [0, 1, 2, 3, 0, 1, 2, 3].shuffle();
-            mode.generate_tiles = modes.deterministic.generate_tiles;
             parent('loop').init();
         },
         generate_tiles: function() {
@@ -808,6 +843,44 @@ function time() {
 
     return window.performance.now() + time_delay;
 }
+
+/**
+ * Gives a less awkward way to play on a computer than using the mouse
+ */
+Keyboard = {
+    last_unclicked_row: 1,
+    setup: function() {
+        $('body').keydown(function(e) {
+
+            if(e.key == ' ') {
+                // Reload the game if it's game over
+                game_over && window.location.reload();
+                // Skip a row
+                Keyboard.last_unclicked_row++;
+                return;
+            }
+
+            var map = {
+                h: 0, j: 1, k: 2, l: 3,
+                q: 0, w: 1, e: 2, r: 3,
+                a: 0, z: 1,
+                u: 0, i: 1, o: 2, p: 3,
+                1: 0, 2: 1, 3: 2, 4: 3
+            };
+
+            if(Keyboard.last_unclicked_row > $('div').length ||
+                map[e.key] === undefined) {
+                return;
+            }
+
+            $('div').eq(-Keyboard.last_unclicked_row)
+                .children()
+                .eq(map[e.key])
+                .click();
+            Keyboard.last_unclicked_row++;
+        });
+    },
+};
 
 function vibrate() {
     navigator.vibrate(50);
