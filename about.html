@@ -27,4 +27,14 @@
         <p>If you have ideas for new modes or for anything that could improve the game, <a href="mailto:316k@legtux.org">let me know !</a></p>
         <p>This game is distributed under the MIT license, and is therefore free and open source software. You can contribute to it directly <a href="https://github.com/316k/tap-the-black-tiles">on Github</a>.</p>
     </body>
+    <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
+    <script>
+    $(function() {
+        // XXX : Ugly bugfix below
+        if(window.droid) {
+            var height = Math.round($(window).width() * window.droid.getSize());
+            $('html, body').height(height);
+        }
+    });
+    </script>
 </html>

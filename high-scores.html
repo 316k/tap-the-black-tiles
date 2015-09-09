@@ -88,6 +88,12 @@
             }
         }
         $('table').tablesorter({sortList: [[2, 1]]});
+
+        // XXX : Ugly bugfix below
+        if(window.droid) {
+            var height = Math.round($(window).width() * window.droid.getSize());
+            $('html, body').height(height);
+        }
     });
 
     function reset(button) {
