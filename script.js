@@ -744,6 +744,8 @@ var modes = {
         validate_tap: function(context) {
             if(hasClass(context, 'good') && !hasClass(context, 'gray')) {
                 return 'good';
+            } else if(hasClass(context, 'black')) {
+                return 'bad';
             }
             return parent('mirror').validate_tap(context);
         },
