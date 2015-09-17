@@ -69,27 +69,34 @@
             </thead>
             <tbody></tbody>
         </table>
+        <p id="no-game-played"></p>
         <button type="button" onclick="reset(this)">Reset all high scores</button>
     </body>
     <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
     <script type="text/javascript" src="jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="helpers.js"></script>
     <script>
     $(function() {
-        for(var i=0; i<window.localStorage.length; i++) {
-            var key = window.localStorage.key(i);
-            if(key.match(/^score\./)) {
-                var mode_name = key.replace(/^score\./, '');
-                var mode_type = '';
-                if(mode_name.match('\.')) {
-                    mode_name = key.split('.')[1].replace(/_/g, ' ');
-                    mode_type = key.split('.')[2].replace(/_/g, ' ');
-                }
-                $('tbody').append('<tr><td>' + mode_name + '</td><td>' + mode_type + '</td><td>' + window.localStorage.getItem(key) + '</td></tr>');
-            }
-        }
-        $('table').tablesorter({sortList: [[2, 1]]});
+        load_storage();
 
-        // XXX : Ugly bugfix below
+        for(var key in filter_object(storage, /^score\./)) {
+            var mode_name = key.replace(/^score\./, '');
+            var mode_type;
+
+            if(mode_name.match('\.')) {
+                mode_name = key.split('.')[1].replace(/_/g, ' ');
+                mode_type = key.split('.')[2].replace(/_/g, ' ');
+            }
+            $('tbody').append('<tr><td>' + mode_name + '</td><td>' + mode_type + '</td><td>' + storage[key] + '</td></tr>');
+        }
+
+        if($('tbody tr').length) {
+            $('table').tablesorter({sortList: [[2, 1]]});
+        } else {
+            $('p#no-game-played').text("No high score set yet. What are you waiting for ? Stop staring at this empty page and go tap some tiles !");
+        }
+
+        // XXX : Ugly android bugfix below
         if(window.droid) {
             var height = Math.round($(window).width() * window.droid.getSize());
             $('html, body').height(height);
@@ -104,7 +111,12 @@
         } else if($(button).data('reset') === 2) {
             $(button).text('Really super mega sure ?').data('reset', 3).css('float', 'left');
         } else if($(button).data('reset') === 3) {
-            window.localStorage.clear();
+            for(var key in storage) {
+                if(key.match(/^score\./)) {
+                    delete storage[key];
+                }
+            }
+            save_storage();
             window.location.reload();
         }
     }

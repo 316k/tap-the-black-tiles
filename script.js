@@ -24,13 +24,23 @@
       []            ||       []         ||[]&[]   &[]||[]                      &
       []            ||       []         ||              []                     &
       []        &&[]||[]&&   []&[]*[]   ||[]&!!    ![]&[]                      &
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!![]
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!![]
 
 var mode, mode_name, mode_parent, last_focus = false, time_delay = 0;
 var touch_event = 'click';
 var game_over = false; // Used to play with a keyboard
 
 $(document).ready(function() {
+
+    load_storage();
+
+    if(storage.vibrate === undefined) {
+        migrate_v1_1(); // TODO : remove this line in 2016
+        storage.vibrate = true;
+        save_storage();
+    }
+
+    set_vibrate(storage.vibrate);
 
     $('#restart, #game-over, #quit, #new-high-score').hide();
 
@@ -88,15 +98,13 @@ $(document).ready(function() {
     } else {
         // Select a mode
         var html = '<div class="select-mode"><h1>Tap the Black Tiles<br /><small>Select a mode...</small></h1>';
-        for(mode in modes) {
-            if(mode.search(/^_/) === 0) {
-                continue;
-            }
+        for(mode in filter_object(modes, /^[^_]/)) {
             var info_html = '<br/><small class="high-score"></small>';
             var parents_html = "";
 
             modes[mode].parents.forEach(function(p) {
-                var high_score = parseInt(localStorage.getItem('score.' + mode + '.' + p)) || 0;
+                var high_score = storage['score.' + mode + '.' + p] || 0;
+
                 parents_html += '<a href="?' + mode + '/' + p + '">'
                     + p.replace(/_/g, ' ')
                     + ' <br /><small class="high-score">Best : ' + high_score + '</small>'
@@ -114,8 +122,10 @@ $(document).ready(function() {
         html += '<div onclick="select_mode(this, null)"><br /><i class="name">More...</i><br />'
             + '<a href="about.html">About this game</a>'
             + '<a href="high-scores.html">High Scores</a>'
+            + '<a href="#!" onclick="toggle_vibration(this)">[' + (storage.vibrate ? 'x' : ' ' )+ '] Toggle vibration</a>'
             + '</div>';
         html += '</div>';
+
         $('html').addClass('menu')
         $('body').addClass('menu').html(html);
         $('.select-mode div a').fadeTo(0, 0);
@@ -191,16 +201,17 @@ var modes = {
             $('#final-score').text(mode.score);
 
             var item = 'score.' + mode_name + '.' + mode.parent;
-            var current_high_score = parseInt(localStorage.getItem(item)) || 0;
+            var current_high_score = storage[item] || 0;
 
             if(current_high_score < mode.score) {
                 $('#new-high-score').show();
-                localStorage.setItem(item, mode.score);
+                storage[item] = mode.score;
+                save_storage();
             }
 
             game_over = 1;
 
-            $('#high-score').text(localStorage.getItem(item) || 0);
+            $('#high-score').text(storage[item] || 0);
             $('#game-over').fadeIn(1000);
             $('#restart, #quit').delay(400).fadeIn('600');
         },
@@ -531,10 +542,9 @@ var modes = {
             return $(last_row).children('.black').not('.tapped').length;
         },
         validate_tap: function(context) {
-            if(hasClass(context, 'black') && !$(context).parent().next('div').find('.black').not('.tapped').length) {
+            if(hasClass(context, 'black') && !hasClass(context, 'tapped')) {
                 return 'good';
             }
-            return 'bad';
         },
         tap_callbacks_good: function(context) {
             parent('no_feedback').tap_callbacks_good(context);
@@ -775,7 +785,7 @@ function select_mode(context, mode) {
         return;
     }
 
-    if($(context).hasClass('selected')) {
+    if($(context).hasClass('selected') && mode !== null) {
         $(context).removeClass('selected');
         $('a', context).fadeTo('fast', 0);
         $('.select-mode div').css({width: '50%', height: '100px'});
@@ -787,9 +797,7 @@ function select_mode(context, mode) {
 
     var children = $(context).children('a').length;
     $(context).children('a').css('width', 100/children + '%');
-    $(context)
-        .addClass('selected')
-        .css({width: '100%', height: '200px'});
+    $(context).addClass('selected').css({width: '100%', height: '200px'});
     $('a', context).fadeTo('fast', 1);
 
     var sibiling = (($(context).index() + 1) % 2) ? $(context).prev() : $(context).next();
@@ -832,10 +840,6 @@ function mode_inheritance(mode) {
  */
 function parent(mode) {
     return modes[modes[mode].parent];
-}
-
-function rand_int(min_rand, max_rand) {
-    return parseInt(min_rand + (Math.random()*1000 % (max_rand - min_rand)));
 }
 
 function time() {
@@ -884,33 +888,35 @@ Keyboard = {
     },
 };
 
-function vibrate() {
-    navigator.vibrate(50);
-}
+var vibrate;
 
-Array.prototype.choose = function() {
-    return this[Math.floor(Math.random() * this.length)];
-};
-
-String.prototype.ucfirst = function() {
-    var string = this.split('');
-    string[0] = string[0].toUpperCase();
-    return string.join('');
-};
-
-// https://jsperf.com/pure-js-hasclass-vs-jquery-hasclass/40 (classListContains)
-function hasClass(el, className) {
-    return el.classList.contains(className);
-}
-
-// See https://jsperf.com/array-shuffle-comparator/14
-Array.prototype.shuffle = function() {
-    var temp, j, i = this.length;
-    while (--i) {
-	    j = ~~(Math.random() * (i + 1));
-	    temp = this[i];
-	    this[i] = this[j];
-	    this[j] = temp;
+function set_vibrate(vib) {
+    if(vib) {
+        vibrate = function() {
+            navigator.vibrate(50);
+        };
+    } else {
+        vibrate = function() {};
     }
-    return this;
+}
+
+function toggle_vibration(context) {
+    storage.vibrate = !storage.vibrate;
+    save_storage();
+    $(context).text('[' + (storage.vibrate ? 'x' : ' ') + '] Toggle vibration');
+}
+
+/**
+ * Bundles the old localStorage values in the new simplified one
+ * TODO : Remove this in 2016
+ */
+function migrate_v1_1() {
+    var old_storage = {};
+    for(var i=0; i<window.localStorage.length; i++) {
+        var key = window.localStorage.key(i);
+        old_storage[key] = window.localStorage.getItem(key);
+    }
+    storage = old_storage;
+    window.localStorage.clear();
+    save_storage();
 }
