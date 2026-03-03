@@ -149,7 +149,6 @@ var modes = {
             mode.score = 0;
             mode.last_move = time();
             mode.scroll_top = 0;
-            console.log(mode_name, mode_parent);
             mode.append();
             mode.row_height = $('div').height();
             mode.speed = 1;
@@ -336,6 +335,10 @@ var modes = {
     },
     _stamina: {
         parent: '_arcade',
+        init: function() {
+            parent('_stamina').init();
+            mode.speed = 3.5;
+        },
         speedUp: function() {},
     },
     _random_speed: {
@@ -406,11 +409,18 @@ var modes = {
     trap: {
         parents: ['_arcade', '_stamina'],
         generate_tiles: function() {
+            var probability_trap = 0.25;
+
+            // XXX : mode.row_height is required for the traps' vertical alignment,
+            // but the row_height is initialized by looking at the first generated tiles...
+            if($('div').length < 2)
+                probability_trap = 0;
+
             return [
                 '<span></span>',
                 '<span></span>',
                 '<span></span>',
-                Math.random() > 0.25 ? '<span class="black"></span>' : '<span class="trap"><br />/!\\</span>'
+                Math.random() > probability_trap ? '<span class="black"></span>' : ('<span class="trap" style="line-height: ' + mode.row_height + 'px; filter: saturate(0);">⚠️</span>')
             ].shuffle();
         },
     },

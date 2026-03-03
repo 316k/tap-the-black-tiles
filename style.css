@@ -157,6 +157,7 @@ span.black, span.trap, span.twice {
     color: white;
     font-size: xx-large;
     text-align: center;
+    vertical-align: middle;
     opacity: 0.97;
 }
 
@@ -194,6 +195,9 @@ span.gray {
     touch-action: none;
     margin-top: 0;
     text-shadow: 0px 0px 1px white;
+    /* https://stackoverflow.com/a/13427256 */
+    text-shadow: 2px 0 #fff, -2px 0 #fff, 0 2px #fff, 0 -2px #fff,
+                 1px 1px #fff, -1px -1px #fff, 1px -1px #fff, -1px 1px #fff;
 }
 
 #restart, #quit {
