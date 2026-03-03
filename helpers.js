@@ -50,3 +50,11 @@ function filter_object(source, key_regex) {
     }
     return object;
 };
+
+function sech_squared(x) {
+    // sech(x) = 1/(cosh(x))
+    // sech²(x) = (1/cosh²(x))
+    // cosh²(x) = 1/2 * cosh(2x + 1)
+    // 1/cosh²(x) = 2 / cosh(2x + 1)
+    return 2 / Math.cosh(2 * x + 1);
+}

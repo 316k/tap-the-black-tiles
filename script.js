@@ -152,7 +152,7 @@ var modes = {
             console.log(mode_name, mode_parent);
             mode.append();
             mode.row_height = $('div').height();
-            mode.speed = mode.row_height*2;
+            mode.speed = 1;
         },
         generate_tiles: function() {
             return [
@@ -194,6 +194,7 @@ var modes = {
             vibrate();
         },
         death_condition: function(context) {
+            return false;
             return $(context).children('.black').length;
         },
         lost: function() {
@@ -237,7 +238,6 @@ var modes = {
         },
         append: function() {
             parent('_arcade').append();
-            mode.speedUp();
         },
         move: function() {
             if(!time()) {
@@ -245,7 +245,8 @@ var modes = {
                 return;
             }
 
-            var delta_y = (time() - mode.last_move)/1000 * mode.speed;
+            var delta_time = (time() - mode.last_move)
+            var delta_y = delta_time * mode.speed * mode.row_height;
             mode.last_move = time();
 
             mode.scroll_top = (mode.scroll_top + delta_y);
@@ -255,6 +256,7 @@ var modes = {
             }
 
             mode.check_death();
+            mode.speedUp(delta_time);
 
             setTimeout(mode.move, 40);
         },
@@ -281,8 +283,12 @@ var modes = {
                 }
             });
         },
-        speedUp: function() {
-            mode.speed += mode.row_height*0.05;
+        speedUp: function(delta_time) {
+            if(mode.speed > 8.5)
+                mode.speed = 8.5;
+            else
+                // Speed increase diminishes with time
+                mode.speed += 0.01 * sech_squared(time()/100);
         }
     },
     _zen: {
@@ -291,7 +297,7 @@ var modes = {
             parent('_zen').init();
             mode.append();
             mode.append();
-            mode.speed = mode.row_height;
+            mode.speed = 1; // multiple of mode.row_height;
         },
         move: function() {
             mode.append();
@@ -336,7 +342,7 @@ var modes = {
     _random_speed: {
         parent: '_arcade',
         speedUp: function() {
-            mode.speed = mode.row_height * (Math.random() * 5) + mode.row_height/2;
+            mode.speed = (Math.random() * 5) + 0.5;
         },
     },
     classic: {
@@ -347,10 +353,7 @@ var modes = {
         parents: ['_arcade', '_stamina'],
         init: function() {
             parent('faster').init();
-            mode.speed = mode.row_height*3.3;
-        },
-        speedUp: function() {
-            mode.speed += mode.row_height*0.15;
+            mode.speed = mode.speed * 4;
         },
     },
     flash: {
@@ -679,10 +682,10 @@ var modes = {
         init: function() {
             parent('right_color').init();
             $('body').children().first().before('<p id="color-indicator"></p><p id="time-indicator"></p>');
-            mode.last_color_modification = -3000;
+            mode.last_color_modification = -3;
             mode.next_color = mode.colors.choose();
             mode.change_color();
-            mode.speed = mode.row_height*3;
+            mode.speed = 2;
         },
         generate_tiles: function() {
             return [
@@ -715,7 +718,7 @@ var modes = {
         },
         change_color: function() {
             var ts = time();
-            if(mode.last_color_modification + 3000 < ts) {
+            if(mode.last_color_modification + 3 < ts) {
                 $('.good[style="background-color: ' + mode.next_color + '"]').each(function() {
                     // Tolerence for tiles that are almost outside of the screen
                     if($(this).parent().position().top > mode.body_height - 1.2 * mode.row_height) {
@@ -842,12 +845,15 @@ function parent(mode) {
     return modes[modes[mode].parent];
 }
 
+/**
+ * Current time in seconds, minus the time spent while the window was out of focus
+ */
 function time() {
     if(last_focus) {
         return 0;
     }
 
-    return window.performance.now() + time_delay;
+    return (window.performance.now() + time_delay) / 1000.0;
 }
 
 /**
@@ -891,7 +897,7 @@ Keyboard = {
 var vibrate;
 
 function set_vibrate(vib) {
-    if(vib) {
+    if(vib && navigator.vibrate) {
         vibrate = function() {
             navigator.vibrate(50);
         };
