@@ -194,7 +194,6 @@ var modes = {
             vibrate();
         },
         death_condition: function(context) {
-            return false;
             return $(context).children('.black').length;
         },
         lost: function() {
