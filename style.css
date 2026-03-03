@@ -64,6 +64,7 @@
 .select-mode div a {
     display: block;
     pointer-events: none;
+    touch-action: none;
     color: black;
     text-decoration: none;
     font-size: large;
@@ -77,6 +78,7 @@
 
 .select-mode div.selected a {
     pointer-events: auto;
+    touch-action: auto;
 }
 
 .select-mode div.selected > small {
@@ -89,6 +91,13 @@ html, body {
     font-family: "sans-serif";
     max-width: 600px;
     margin: auto;
+}
+
+.no-selection {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 body {
@@ -182,6 +191,7 @@ span.gray {
     font-size: 900%;
     color: #333;
     pointer-events: none;
+    touch-action: none;
     margin-top: 0;
     text-shadow: 0px 0px 1px white;
 }
